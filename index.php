@@ -309,60 +309,60 @@ include __DIR__ . '/inc/header.php';
 
     <h1 class="subtitle">‧₊˚ ⋅🌿🌱𓂃 ࣪ ִֶָ.</h1><br>
 
-    <!-- ==================== 7. BERITA TERBARU ==================== -->
-    <section class="berita-section modern">
+    <!-- ==================== 7. artikel TERBARU ==================== -->
+    <section class="artikel-section modern">
         <div class="section-header">
-            <h2 class="title-underline">Berita Lingkungan Terkini</h2>
+            <h2 class="title-underline">Artikel Terkini</h2>
         </div>
         
-        <div class="berita-grid">
-            <?php if (!empty($berita_list)): ?>
+        <div class="artikel-grid">
+            <?php if (!empty($artikel_list)): ?>
                 <?php 
-                $shown_berita = 0;
-                foreach ($berita_list as $berita): 
-                    if ($shown_berita >= 3) break; // Tampilkan max 3 berita
-                    $shown_berita++;
+                $shown_artikel = 0;
+                foreach ($artikel_list as $artikel): 
+                    if ($shown_artikel >= 3) break; // Tampilkan max 3 artikel
+                    $shown_artikel++;
                 ?>
-                    <div class="berita-card">
-                        <div class="berita-image">
-                            <?php if (isset($berita['gambar_berita']) && !empty($berita['gambar_berita'])): ?>
-                                <img src="assets/img/berita/<?php echo htmlspecialchars($berita['gambar_berita']); ?>" 
-                                     alt="<?php echo htmlspecialchars($berita['judul_berita']); ?>">
+                    <div class="artikel-card">
+                        <div class="artikel-image">
+                            <?php if (isset($artikel['gambar_artikel']) && !empty($artikel['gambar_artikel'])): ?>
+                                <img src="assets/img/artikel/<?php echo htmlspecialchars($artikel['gambar_artikel']); ?>" 
+                                     alt="<?php echo htmlspecialchars($artikel['judul_artikel']); ?>">
                             <?php else: ?>
                                 <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #4a7c29, #6ba544); display: flex; align-items: center; justify-content: center; font-size: 4rem; color: rgba(255,255,255,0.3);">
                                     📰
                                 </div>
                             <?php endif; ?>
                             
-                            <div class="berita-overlay">
-                                <span class="berita-category">
+                            <div class="artikel-overlay">
+                                <span class="artikel-category">
                                     <i>🏷️</i> Lingkungan
                                 </span>
                             </div>
                         </div>
                         
-                        <div class="berita-content">
-                            <div class="berita-date-badge">
+                        <div class="artikel-content">
+                            <div class="artikel-date-badge">
                                 <i>📅</i>
-                                <?php echo date('d F Y', strtotime($berita['tanggal_berita'])); ?>
+                                <?php echo date('d F Y', strtotime($artikel['tanggal_artikel'])); ?>
                             </div>
                             
-                            <h3><?php echo htmlspecialchars($berita['judul_berita']); ?></h3>
+                            <h3><?php echo htmlspecialchars($artikel['judul_artikel']); ?></h3>
                             
-                            <p class="berita-excerpt">
+                            <p class="artikel-excerpt">
                                 <?php 
-                                $excerpt = strip_tags($berita['isi_berita']);
+                                $excerpt = strip_tags($artikel['isi_artikel']);
                                 echo htmlspecialchars(substr($excerpt, 0, 120));
                                 echo strlen($excerpt) > 120 ? '...' : '';
                                 ?>
                             </p>
                             
-                            <div class="berita-footer">
+                            <div class="artikel-footer">
                                 <a href="<?php 
-                                    if (isset($berita['id']) && !empty($berita['id'])) {
-                                        echo 'detail-berita.php?id=' . $berita['id'];
+                                    if (isset($artikel['id']) && !empty($artikel['id'])) {
+                                        echo 'detail-artikel.php?id=' . $artikel['id'];
                                     } else {
-                                        echo 'berita.php';
+                                        echo 'artikel.php';
                                     }
                                 ?>" class="btn-read-more">
                                     Baca Selengkapnya <i>→</i>
@@ -374,15 +374,15 @@ include __DIR__ . '/inc/header.php';
             <?php else: ?>
                 <div class="empty-state-container">
                     <div class="empty-state-icon">📰</div>
-                    <h3>Belum Ada Berita</h3>
-                    <p>Saat ini belum ada berita yang tersedia.</p>
+                    <h3>Belum Ada Artikel</h3>
+                    <p>Saat ini belum ada artikel yang tersedia.</p>
                 </div>
             <?php endif; ?>
         </div>
 
-        <?php if (count($berita_list) > 0): ?>
+        <?php if (count($artikel_list) > 0): ?>
         <div class="section-cta">
-            <a href="berita.php" class="btn-cta-secondary">
+            <a href="artikel.php" class="btn-cta-secondary">
                 Baca Artikel Lainnya <i>→</i>
             </a>
         </div>

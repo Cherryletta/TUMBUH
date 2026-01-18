@@ -17,11 +17,11 @@ while ($row = mysqli_fetch_assoc($kegiatan_query)) {
     $kegiatan_list[] = $row;
 }
 
-// Berita
-$berita_query = mysqli_query($conn, "SELECT * FROM berita ORDER BY created_at_berita DESC LIMIT 5");
-$berita_list = [];
-while ($row = mysqli_fetch_assoc($berita_query)) {
-    $berita_list[] = $row;
+// artikel
+$artikel_query = mysqli_query($conn, "SELECT * FROM artikel ORDER BY created_at_artikel DESC LIMIT 5");
+$artikel_list = [];
+while ($row = mysqli_fetch_assoc($artikel_query)) {
+    $artikel_list[] = $row;
 }
 
 // Tim
@@ -65,7 +65,7 @@ $tentang_pages = ['tentang.php', 'visi-misi.php', 'tim.php', 'kontak.php'];
 <div class="mobile-sidebar-menu" id="mobileSidebarMenu">
     <div class="mobile-menu-header">
         <div class="mobile-menu-logo">
-            <img src="assets/img/logo_tumbuh.png" alt="TUMBUH Logo">
+            <a href="index.php"><img src="assets/img/logo_tumbuh.png" alt="TUMBUH Logo"></a>
         </div>
         <button class="mobile-menu-close" id="mobileMenuClose">&times;</button>
     </div>
@@ -103,9 +103,9 @@ $tentang_pages = ['tentang.php', 'visi-misi.php', 'tim.php', 'kontak.php'];
             </li>
             
             <li>
-                <a href="berita.php" class="<?php echo ($current_page == 'berita.php') ? 'active' : ''; ?>">
+                <a href="artikel.php" class="<?php echo ($current_page == 'artikel.php') ? 'active' : ''; ?>">
                     <span class="menu-icon">📰</span>
-                    <span>Berita</span>
+                    <span>artikel</span>
                 </a>
             </li>
             
@@ -174,7 +174,7 @@ $tentang_pages = ['tentang.php', 'visi-misi.php', 'tim.php', 'kontak.php'];
             </li>
             
             <li><a href="kegiatan.php" class="<?php echo ($current_page == 'kegiatan.php') ? 'active' : ''; ?>">Kegiatan</a></li>
-            <li><a href="berita.php" class="<?php echo ($current_page == 'berita.php') ? 'active' : ''; ?>">Berita</a></li>
+            <li><a href="artikel.php" class="<?php echo ($current_page == 'artikel.php') ? 'active' : ''; ?>">Artikel</a></li>
             <li><a href="galeri.php" class="<?php echo ($current_page == 'galeri.php') ? 'active' : ''; ?>">Galeri</a></li>
         </ul>
 

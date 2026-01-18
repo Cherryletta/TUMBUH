@@ -1,7 +1,7 @@
 <?php include __DIR__ . '/inc/header.php'; ?>
 
 <div class="container">
-<h2 class="title-underline">Tentang Kami</h2>
+<h2 class="title-underline">Siapa Kami</h2>
 
 <div class="container tentang-wrapper">
 

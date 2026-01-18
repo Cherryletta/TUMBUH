@@ -70,6 +70,45 @@ switch ($action) {
         header("Location: admin.php?tab=kegiatan&kegiatan_added=1");
         exit();
 
+    case 'update_kegiatan':
+        $id        = (int) $_POST['id_kegiatan'];
+        $judul     = clean($_POST['judul_kegiatan']);
+        $tanggal   = clean($_POST['tanggal_kegiatan']);
+        $lokasi    = clean($_POST['lokasi_kegiatan']);
+        $deskripsi = clean($_POST['deskripsi_kegiatan']);
+        $status    = clean($_POST['status_kegiatan']);
+
+        if (!$id || !$judul || !$tanggal || !$lokasi || !$status) {
+            header("Location: admin.php?tab=kegiatan&error=invalid_input");
+            exit();
+        }
+
+        $stmt = mysqli_prepare($conn, "
+            UPDATE kegiatan SET
+                judul_kegiatan = ?,
+                tanggal_kegiatan = ?,
+                lokasi_kegiatan = ?,
+                deskripsi_kegiatan = ?,
+                status_kegiatan = ?
+            WHERE id_kegiatan = ?
+        ");
+
+        mysqli_stmt_bind_param(
+            $stmt,
+            "sssssi",
+            $judul,
+            $tanggal,
+            $lokasi,
+            $deskripsi,
+            $status,
+            $id
+        );
+
+        mysqli_stmt_execute($stmt);
+
+        header("Location: admin.php?tab=kegiatan&kegiatan_updated=1");
+        exit();
+        
     case 'delete_kegiatan':
         $id = (int) ($_POST['id'] ?? 0);
 
@@ -80,32 +119,94 @@ switch ($action) {
         header("Location: admin.php?tab=kegiatan&kegiatan_deleted=1");
         exit();
 
-    // ==================== BERITA ====================
-    case 'add_berita':
-        $judul   = clean($_POST['judul_berita']);
-        $tanggal = clean($_POST['tanggal_berita']);
-        $sumber  = clean($_POST['sumber_berita']);
-        $isi     = clean($_POST['isi_berita']);
+    // ==================== ARTIKEL ====================
+    case 'add_artikel':
+
+        $kategori = $_POST['kategori_artikel'];
+        $judul    = mysqli_real_escape_string($conn, $_POST['judul_artikel']);
+        $tanggal  = $_POST['tanggal_artikel'];
+        $sumber   = mysqli_real_escape_string($conn, $_POST['sumber_artikel']);
+        $gambar   = mysqli_real_escape_string($conn, $_POST['gambar_artikel']);
+        $isi      = mysqli_real_escape_string($conn, $_POST['isi_artikel']);
+
+        if (!$kategori || !$judul || !$tanggal || !$sumber || !$isi) {
+            header("Location: admin.php?tab=artikel&error=invalid_input");
+            exit();
+        }
 
         $stmt = mysqli_prepare($conn, "
-            INSERT INTO berita 
-            (judul_berita, tanggal_berita, sumber_berita, isi_berita)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO artikel
+            (kategori_artikel, judul_artikel, tanggal_artikel, sumber_artikel, gambar_artikel, isi_artikel)
+            VALUES (?, ?, ?, ?, ?, ?)
         ");
-        mysqli_stmt_bind_param($stmt, "ssss", $judul, $tanggal, $sumber, $isi);
+
+        mysqli_stmt_bind_param(
+            $stmt,
+            "ssssss",
+            $kategori,
+            $judul,
+            $tanggal,
+            $sumber,
+            $gambar,
+            $isi
+        );
+
         mysqli_stmt_execute($stmt);
 
-        header("Location: admin.php?tab=berita&berita_added=1");
+        header("Location: admin.php?tab=artikel&artikel_added=1");
         exit();
 
-    case 'delete_berita':
+    case 'update_artikel':
+
+        $id       = (int) $_POST['id_artikel'];
+        $kategori = clean($_POST['kategori_artikel']);
+        $judul    = clean($_POST['judul_artikel']);
+        $tanggal  = $_POST['tanggal_artikel'];
+        $sumber   = clean($_POST['sumber_artikel']);
+        $gambar   = clean($_POST['gambar_artikel'] ?? '');
+        $isi      = clean($_POST['isi_artikel']);
+
+        if (!$id || !$kategori || !$judul || !$tanggal || !$sumber || !$isi) {
+            header("Location: admin.php?tab=artikel&error=invalid_input");
+            exit();
+        }
+
+        $stmt = mysqli_prepare($conn, "
+            UPDATE artikel SET
+                kategori_artikel = ?,
+                judul_artikel    = ?,
+                tanggal_artikel  = ?,
+                sumber_artikel   = ?,
+                gambar_artikel   = ?,
+                isi_artikel      = ?
+            WHERE id_artikel = ?
+        ");
+
+        mysqli_stmt_bind_param(
+            $stmt,
+            "ssssssi",
+            $kategori,
+            $judul,
+            $tanggal,
+            $sumber,
+            $gambar,
+            $isi,
+            $id
+        );
+
+        mysqli_stmt_execute($stmt);
+
+        header("Location: admin.php?tab=artikel&artikel_updated=1");
+        exit();
+
+    case 'delete_artikel':
         $id = (int) ($_POST['id'] ?? 0);
 
-        $stmt = mysqli_prepare($conn, "DELETE FROM berita WHERE id_berita = ?");
+        $stmt = mysqli_prepare($conn, "DELETE FROM artikel WHERE id_artikel = ?");
         mysqli_stmt_bind_param($stmt, "i", $id);
         mysqli_stmt_execute($stmt);
 
-        header("Location: admin.php?tab=berita&berita_deleted=1");
+        header("Location: admin.php?tab=artikel&artikel_deleted=1");
         exit();
 
     // ==================== PESAN ====================

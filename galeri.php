@@ -6,13 +6,13 @@
 
     <?php
     // Ambil data kegiatan dari database dengan foto-nya
-    $kegiatan_query = mysqli_query($conn, "SELECT * FROM kegiatan ORDER BY created_at_kegiatan DESC");
+    $kegiatan_query = mysqli_query($conn, "SELECT * FROM kegiatan WHERE status_kegiatan = 'selesai' ORDER BY created_at_kegiatan DESC");
     $kegiatan_list = [];
     
     while ($row = mysqli_fetch_assoc($kegiatan_query)) {
         // Ambil foto untuk kegiatan ini (limit 3)
         $id_k = $row['id_kegiatan'];
-        $foto_query = mysqli_query($conn, "SELECT * FROM galeri WHERE id_kegiatan = $id_k ORDER BY tanggal_upload_galeri DESC LIMIT 3");
+        $foto_query = mysqli_query($conn, "SELECT * FROM galeri WHERE id_kegiatan = $id_k ORDER BY tanggal_upload_galeri ASC LIMIT 3");
         $fotos = mysqli_fetch_all($foto_query, MYSQLI_ASSOC);
         
         // Jika kurang dari 3 foto, tambahi dengan placeholder
