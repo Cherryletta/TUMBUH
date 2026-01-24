@@ -5054,7 +5054,6 @@ body:not(.admin-page) .kegiatan-card-body {
     margin: 1.5rem 0;
 }
 
-/* ==================== ADMIN PANEL ==================== */
 .admin-sidebar {
     width: 250px;
     background: white;
@@ -5063,6 +5062,31 @@ body:not(.admin-page) .kegiatan-card-body {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    z-index: 50;
+    padding-top: calc(80px + 2rem);
+}
+
+.admin-sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.admin-sidebar::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.admin-sidebar::-webkit-scrollbar-thumb {
+    background: var(--secondary-green);
+    border-radius: 3px;
+}
+
+.admin-sidebar::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-green);
 }
 
 .admin-nav-btn {
@@ -5092,7 +5116,8 @@ body:not(.admin-page) .kegiatan-card-body {
 .admin-main {
     flex: 1;
     padding: 2rem;
-    overflow-y: visible;
+    min-height: 100vh;
+    margin-left: 250px;
 }
 
 .admin-content {
