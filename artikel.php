@@ -1,14 +1,10 @@
 <?php
 include __DIR__ . '/inc/header.php'; 
 
-// Ambil parameter filter kategori
 $filter_kategori = isset($_GET['kategori']) ? $_GET['kategori'] : 'semua';
-
-// Query untuk artikel terbaru di sidebar
 $sql_terbaru = "SELECT * FROM artikel ORDER BY created_at_artikel DESC LIMIT 3";
 $result_terbaru = mysqli_query($conn, $sql_terbaru);
 
-// Query untuk artikel list dengan filter
 if ($filter_kategori == 'semua') {
     $sql_artikel = "SELECT * FROM artikel ORDER BY created_at_artikel DESC";
 } else {
@@ -26,7 +22,7 @@ $result_artikel = mysqli_stmt_get_result($stmt);
 <!-- HEADER ARTIKEL -->
 <div class="container" style="padding: 2rem 1rem 1rem 1rem;">
     <h2 class="title-underline">Artikel TUMBUH</h2>
-    <p class="subtitle">Informasi, tips, dan cerita inspiratif seputar lingkungan dan konservasi</p>
+    <div class="intro-text">Informasi, tips, dan cerita inspiratif seputar lingkungan dan konservasi</div>
 </div>
 
 <!-- CONTAINER ARTIKEL -->

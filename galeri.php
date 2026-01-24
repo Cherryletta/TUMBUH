@@ -2,10 +2,9 @@
 
 <div class="container">
     <h2 class="title-underline">Galeri Kegiatan</h2>
-    <p class="subtitle">Saksikan momen-momen indah dari kegiatan TUMBUH</p>
+    <div class="intro-text">Saksikan momen-momen indah dari kegiatan TUMBUH</div>
 
     <?php
-    // Ambil data kegiatan dari database dengan foto-nya
     $kegiatan_query = mysqli_query($conn, "SELECT * FROM kegiatan WHERE status_kegiatan = 'selesai' ORDER BY created_at_kegiatan DESC");
     $kegiatan_list = [];
     
@@ -46,10 +45,17 @@
                 <div class="kegiatan-gallery-card">
                     <div class="kegiatan-info-box">
                         <h3 style="text-align: justify; font-weight: bold; font-size: 25px;"><?php echo $kegiatan['judul_kegiatan']; ?></h3>
-                        <p class="kegiatan-meta">
-                            <strong>📍 Lokasi:</strong> <?php echo $kegiatan['lokasi_kegiatan']; ?><br>
-                            <strong>📅 Tanggal:</strong> <?php echo date('d F Y', strtotime($kegiatan['tanggal_kegiatan'])); ?>
-                        </p>
+                        <div class="kegiatan-meta">
+                            <div class="meta-item">
+                                <strong>📍 Lokasi:</strong>
+                                <span>Online (Zoom Meeting)</span>
+                            </div>
+
+                            <div class="meta-item">
+                                <strong>📅 Tanggal:</strong>
+                                <span>07 December 2025</span>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Carousel -->

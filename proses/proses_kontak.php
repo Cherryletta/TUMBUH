@@ -1,5 +1,4 @@
 <?php
-session_start();
 require_once __DIR__ . '/config.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -49,10 +48,10 @@ Dikirim pada: " . date('d-m-Y H:i:s') . "
         $_SESSION['error'] = "Terjadi kesalahan. Silakan coba lagi.";
     }
     
-    header('Location: kontak.php');
+    header('Location: ../kontak.php');
     exit;
     
 } else {
-    header('Location: kontak.php');
+    header('Location: ../kontak.php');
     exit;
 }

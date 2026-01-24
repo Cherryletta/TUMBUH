@@ -27,7 +27,7 @@
         <!-- FORM KONTAK -->
         <div class="kontak-form-section">
             <h3>Kirim Pesan</h3>
-            <form action="proses_kontak.php" method="POST">
+            <form action="proses/proses_kontak.php" method="POST">
                 <div class="form-group">
                     <label for="nama">Nama Lengkap <span style="color: #ff9800;">*</span></label>
                     <input type="text" id="nama" name="nama" placeholder="Masukkan nama lengkap Anda" required>

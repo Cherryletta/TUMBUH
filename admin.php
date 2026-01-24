@@ -2,7 +2,7 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-require_once 'config.php';
+require_once __DIR__ . '/proses/config.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] != 'admin') {
     header("Location: index.php");
@@ -25,14 +25,28 @@ if (isset($_GET['ajax'])) {
     
     if ($_GET['ajax'] == 'get_kegiatan' && isset($_GET['id'])) {
         $id = (int)$_GET['id'];
-        $stmt = mysqli_prepare($conn, "SELECT * FROM kegiatan WHERE id_kegiatan = ?");
+        $stmt = mysqli_prepare($conn, "SELECT k.*, d.manfaat_kegiatan, d.syarat_kegiatan FROM kegiatan k LEFT JOIN detail_kegiatan d ON k.id_kegiatan = d.id_kegiatan WHERE k.id_kegiatan = ?");
         mysqli_stmt_bind_param($stmt, "i", $id);
         mysqli_stmt_execute($stmt);
         $result = mysqli_stmt_get_result($stmt);
         echo json_encode(mysqli_fetch_assoc($result) ?: ['error' => 'Not found']);
         exit();
     }
-    
+   
+    if ($_GET['ajax'] == 'get_galeri' && isset($_GET['id'])) {
+        $id = (int)$_GET['id'];
+        $stmt = mysqli_prepare($conn,
+            "SELECT id_galeri, foto_galeri, deskripsi_galeri
+            FROM galeri
+            WHERE id_galeri = ?"
+        );
+        mysqli_stmt_bind_param($stmt, "i", $id);
+        mysqli_stmt_execute($stmt);
+        $res = mysqli_stmt_get_result($stmt);
+        echo json_encode(mysqli_fetch_assoc($res) ?: ['error' => 'Not found']);
+        exit();
+    }
+
     if ($_GET['ajax'] == 'get_artikel' && isset($_GET['id'])) {
         $id = (int)$_GET['id'];
         $stmt = mysqli_prepare($conn, "SELECT * FROM artikel WHERE id_artikel = ?");
@@ -46,6 +60,16 @@ if (isset($_GET['ajax'])) {
     if ($_GET['ajax'] == 'get_pesan' && isset($_GET['id'])) {
         $id = (int)$_GET['id'];
         $stmt = mysqli_prepare($conn, "SELECT * FROM kontak_pesan WHERE id_pesan = ?");
+        mysqli_stmt_bind_param($stmt, "i", $id);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        echo json_encode(mysqli_fetch_assoc($result) ?: ['error' => 'Not found']);
+        exit();
+    }
+
+    if ($_GET['ajax'] == 'get_tim' && isset($_GET['id'])) {
+        $id = (int)$_GET['id'];
+        $stmt = mysqli_prepare($conn, "SELECT * FROM tim WHERE id_tim = ?");
         mysqli_stmt_bind_param($stmt, "i", $id);
         mysqli_stmt_execute($stmt);
         $result = mysqli_stmt_get_result($stmt);
@@ -149,9 +173,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
             $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
             
             if (in_array($file_ext, $allowed) && $_FILES['foto']['size'] <= 5 * 1024 * 1024) {
-            $original_name = basename($_FILES['foto']['name']); // nama asli file
-            $upload_dir = __DIR__ . '/assets/img/galeri/';
-            $target_path = $upload_dir . $original_name;
+                $original_name = basename($_FILES['foto']['name']);
+                $upload_dir = __DIR__ . '/assets/img/galeri/';
+                $target_path = $upload_dir . $original_name;
                 
                 if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
                 
@@ -169,7 +193,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                         exit();
                     }
                 }
-
             }
         }
     }
@@ -213,26 +236,106 @@ $tim_list = [];
 $result = mysqli_query($conn, "SELECT * FROM tim ORDER BY id_tim ASC");
 while ($row = mysqli_fetch_assoc($result)) $tim_list[] = $row;
 
+// ==================== PAGINATION GALERI ====================
+$limit = 9; // 3 x 3
+$page  = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$offset = ($page - 1) * $limit;
+
+// total data
+$total_query = mysqli_query($conn, "SELECT COUNT(*) AS total FROM galeri");
+$total_data  = mysqli_fetch_assoc($total_query)['total'];
+$total_pages = ceil($total_data / $limit);
+
+// data per halaman
 $fotos_list = [];
-$result = mysqli_query($conn, "SELECT f.*, k.judul_kegiatan FROM galeri f JOIN kegiatan k ON f.id_kegiatan = k.id_kegiatan ORDER BY f.tanggal_upload_galeri DESC");
-while ($row = mysqli_fetch_assoc($result)) $fotos_list[] = $row;
-
-$statistik = [];
-$result = mysqli_query($conn, "SELECT * FROM statistik");
-while ($row = mysqli_fetch_assoc($result)) $statistik[$row['nama_stat']] = $row['nilai'];
-
-$edit_tim = null;
-if (isset($_GET['edit_tim'])) {
-    $id_tim = (int)$_GET['edit_tim'];
-    $result = mysqli_query($conn, "SELECT * FROM tim WHERE id_tim = $id_tim");
-    $edit_tim = mysqli_fetch_assoc($result);
+$result = mysqli_query($conn, "
+    SELECT f.*, k.judul_kegiatan
+    FROM galeri f
+    JOIN kegiatan k ON f.id_kegiatan = k.id_kegiatan
+    ORDER BY f.tanggal_upload_galeri DESC
+    LIMIT $limit OFFSET $offset
+");
+while ($row = mysqli_fetch_assoc($result)) {
+    $fotos_list[] = $row;
 }
+
+$q2 = mysqli_query($conn, "SELECT COUNT(*) AS total FROM kegiatan WHERE status_kegiatan = 'selesai'");
+$kegiatan_selesai = mysqli_fetch_assoc($q2)['total'] ?? 0;
+
+$q3 = mysqli_query($conn, "SELECT COUNT(*) AS total FROM users WHERE role_user = 'user'");
+$total_relawan = mysqli_fetch_assoc($q3)['total'] ?? 0;
+
+$q4 = mysqli_query($conn, "SELECT COUNT(*) AS total FROM artikel");
+$total_artikel = mysqli_fetch_assoc($q4)['total'] ?? 0;
 
 $pesan_list = [];
 $result = mysqli_query($conn, "SELECT * FROM kontak_pesan ORDER BY tanggal_pesan DESC");
 while ($row = mysqli_fetch_assoc($result)) $pesan_list[] = $row;
 
 $pesan_belum_dibaca = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM kontak_pesan WHERE status_pesan = 'belum_dibaca'"));
+
+$pendaftaran_list = [];
+$result = mysqli_query($conn, "
+    SELECT p.*, k.judul_kegiatan, k.tanggal_kegiatan, u.nama_user, u.email_user 
+    FROM pendaftaran_kegiatan p 
+    JOIN kegiatan k ON p.id_kegiatan = k.id_kegiatan 
+    JOIN users u ON p.id_user = u.id_user 
+    ORDER BY p.tanggal_daftar DESC
+");
+while ($row = mysqli_fetch_assoc($result)) $pendaftaran_list[] = $row;
+
+// Kegiatan aktif (berlangsung + mendatang)
+$kegiatanAktif = $conn->query("
+    SELECT judul_kegiatan, status_kegiatan, tanggal_kegiatan
+    FROM kegiatan
+    WHERE status_kegiatan IN ('berlangsung','mendatang')
+    ORDER BY tanggal_kegiatan ASC
+    LIMIT 5
+");
+
+// Pendaftaran terbaru
+$pendaftaranTerbaru = $conn->query("
+    SELECT u.nama_user, k.judul_kegiatan, p.tanggal_daftar
+    FROM pendaftaran_kegiatan p
+    JOIN users u ON u.id_user = p.id_user
+    JOIN kegiatan k ON k.id_kegiatan = p.id_kegiatan
+    ORDER BY p.tanggal_daftar DESC
+    LIMIT 8
+");
+
+// Chart: status kegiatan
+$statusResult = $conn->query("
+    SELECT status_kegiatan, COUNT(*) total
+    FROM kegiatan
+    GROUP BY status_kegiatan
+");
+
+$statusData = ['selesai'=>0,'berlangsung'=>0,'mendatang'=>0];
+while ($r = $statusResult->fetch_assoc()) {
+    $statusData[$r['status_kegiatan']] = (int)$r['total'];
+}
+
+// Chart: kategori kegiatan
+$kategoriKegiatanResult = $conn->query("
+    SELECT jenis_kegiatan, COUNT(*) total
+    FROM kegiatan
+    GROUP BY jenis_kegiatan
+");
+$kategoriKegiatanData = [];
+while ($r = $kategoriKegiatanResult->fetch_assoc()) {
+    $kategoriKegiatanData[$r['jenis_kegiatan']] = (int)$r['total'];
+}
+
+// Chart: kategori artikel
+$kategoriArtikelResult = $conn->query("
+    SELECT kategori_artikel, COUNT(*) total
+    FROM artikel
+    GROUP BY kategori_artikel
+");
+$kategoriArtikelData = [];
+while ($r = $kategoriArtikelResult->fetch_assoc()) {
+    $kategoriArtikelData[$r['kategori_artikel']] = (int)$r['total'];
+}
 ?>
 
 <!DOCTYPE html>
@@ -242,6 +345,7 @@ $pesan_belum_dibaca = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM kontak_
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel - TUMBUH</title>
     <link rel="stylesheet" href="assets/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="admin-page">
     <nav class="admin-nav">
@@ -249,7 +353,7 @@ $pesan_belum_dibaca = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM kontak_
         <div class="nav-links">
             <a href="index.php">← Kembali ke Website</a>
             <span class="admin-user">👤 <?php echo $_SESSION['user_name']; ?></span>
-            <a href="auth/logout.php" class="btn-logout">Keluar</a>
+            <a href="proses/logout.php" class="btn-logout">Keluar</a>
         </div>
     </nav>
 
@@ -258,6 +362,7 @@ $pesan_belum_dibaca = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM kontak_
             <button class="admin-nav-btn <?php echo (!isset($_GET['tab']) || $_GET['tab'] == 'statistik') ? 'active' : ''; ?>" onclick="showTab('statistik', event)">📊 Dashboard</button>
             <button class="admin-nav-btn <?php echo ($_GET['tab'] ?? '') == 'relawan' ? 'active' : ''; ?>" onclick="showTab('relawan', event)">👥 Kelola Relawan</button>
             <button class="admin-nav-btn <?php echo ($_GET['tab'] ?? '') == 'kegiatan' ? 'active' : ''; ?>" onclick="showTab('kegiatan', event)">📅 Kelola Kegiatan</button>
+            <button class="admin-nav-btn <?php echo ($_GET['tab'] ?? '') == 'pendaftaran' ? 'active' : ''; ?>" onclick="showTab('pendaftaran', event)">📝 Kelola Pendaftaran</button>
             <button class="admin-nav-btn <?php echo ($_GET['tab'] ?? '') == 'artikel' ? 'active' : ''; ?>" onclick="showTab('artikel', event)">📰 Kelola Artikel</button>
             <button class="admin-nav-btn <?php echo ($_GET['tab'] ?? '') == 'tim' ? 'active' : ''; ?>" onclick="showTab('tim', event)">👤 Kelola Tim</button>
             <button class="admin-nav-btn <?php echo ($_GET['tab'] ?? '') == 'galeri' ? 'active' : ''; ?>" onclick="showTab('galeri', event)">📸 Kelola Galeri</button>
@@ -281,44 +386,99 @@ $pesan_belum_dibaca = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM kontak_
                     <div class="dashboard-card">
                         <div class="card-icon">👥</div>
                         <div class="card-content">
-                            <h3><?php echo count($users_list); ?></h3>
-                            <p>Total Relawan</p>
+                            <h3><?php echo $total_relawan; ?></h3>
+                            <p>Relawan Terlibat</p>
                         </div>
                     </div>
                     <div class="dashboard-card">
                         <div class="card-icon">🌳</div>
                         <div class="card-content">
-                            <h3><?php echo number_format($statistik['pohon_ditanam'] ?? 0); ?></h3>
-                            <p>Pohon Ditanam</p>
+                            <h3><?php echo $kegiatan_selesai; ?></h3>
+                            <p>Kegiatan Terlaksana</p>
                         </div>
                     </div>
                     <div class="dashboard-card">
                         <div class="card-icon">📍</div>
                         <div class="card-content">
-                            <h3><?php echo $statistik['lokasi_penanaman'] ?? 0; ?></h3>
-                            <p>Lokasi Penanaman</p>
-                        </div>
-                    </div>
-                    <div class="dashboard-card">
-                        <div class="card-icon">📰</div>
-                        <div class="card-content">
-                            <h3><?php echo count($artikel_list); ?></h3>
-                            <p>Total Artikel</p>
+                            <h3><?php echo $total_artikel; ?></h3>
+                            <p>Informasi Dibagikan</p>
                         </div>
                     </div>
                 </div>
 
-                <div class="dashboard-grid">
-                    <div class="card">
-                        <h3>Statistik Lengkap</h3>
-                        <div class="stat-item"><span>Total Kegiatan</span><strong><?php echo count($kegiatan_list); ?></strong></div>
-                        <div class="stat-item"><span>Status Relawan Aktif</span><strong><?php echo count($users_list); ?></strong></div>
-                        <div class="stat-item"><span>Total Publikasi</span><strong><?php echo count($artikel_list); ?></strong></div>
-                        <div class="stat-item"><span>Total Anggota Tim</span><strong><?php echo count($tim_list); ?></strong></div>
-                        <div class="stat-item"><span>Total Foto Galeri</span><strong><?php echo count($fotos_list); ?></strong></div>
+            <div class="dashboard-lower-grid">
+
+                <!-- KIRI -->
+                <div class="dashboard-left-stack">
+
+                    <!-- KEGIATAN AKTIF -->
+                    <div class="dashboard-panel">
+                        <h3 class="dashboard-panel-title">Kegiatan Aktif</h3>
+
+                        <ul class="activity-simple-list">
+                            <?php if ($kegiatanAktif->num_rows > 0): ?>
+                                <?php while ($k = $kegiatanAktif->fetch_assoc()): ?>
+                                    <li>
+                                        <span class="activity-dot <?= $k['status_kegiatan']==='berlangsung'?'active':'upcoming' ?>"></span>
+                                        <div>
+                                            <strong><?= htmlspecialchars($k['judul_kegiatan']) ?></strong>
+                                            <small>
+                                                <?= ucfirst($k['status_kegiatan']) ?> ·
+                                                <?= date('d M Y', strtotime($k['tanggal_kegiatan'])) ?>
+                                            </small>
+                                        </div>
+                                    </li>
+                                <?php endwhile; ?>
+                            <?php else: ?>
+                                <li><small>Tidak ada kegiatan aktif</small></li>
+                            <?php endif; ?>
+                        </ul>
+                    </div>
+
+                    <!-- PENDAFTARAN TERBARU -->
+                    <div class="dashboard-panel">
+                        <h3 class="dashboard-panel-title">Pendaftaran Terbaru</h3>
+
+                        <ul class="registration-simple-list">
+                            <?php if ($pendaftaranTerbaru->num_rows > 0): ?>
+                                <?php while ($p = $pendaftaranTerbaru->fetch_assoc()): ?>
+                                    <li>
+                                        <div>
+                                            <strong><?= htmlspecialchars($p['nama_user']) ?></strong><br>
+                                            <small><?= date('d M Y H:i', strtotime($p['tanggal_daftar'])) ?></small>
+                                        </div>
+                                        <span><?= htmlspecialchars($p['judul_kegiatan']) ?></span>
+                                    </li>
+                                <?php endwhile; ?>
+                            <?php else: ?>
+                                <li><small>Belum ada pendaftaran</small></li>
+                            <?php endif; ?>
+                        </ul>
                     </div>
                 </div>
+
+                <!-- KANAN -->
+                <div class="dashboard-right-stack">
+
+                    <div class="dashboard-panel chart-box">
+                        <h3 class="dashboard-panel-title">Status Kegiatan</h3>
+                        <canvas id="chartStatusKegiatan"></canvas>
+                    </div>
+
+                    <div class="dashboard-panel chart-box">
+                        <h3 class="dashboard-panel-title">Kategori Kegiatan</h3>
+                        <canvas id="chartKategoriKegiatan"></canvas>
+                    </div>
+
+                    <div class="dashboard-panel chart-box">
+                        <h3 class="dashboard-panel-title">Kategori Artikel</h3>
+                        <canvas id="chartKategoriArtikel"></canvas>
+                    </div>
+
+                </div>
+
             </div>
+        </div>
 
             <!-- TAB RELAWAN -->
             <div id="tab-relawan" class="admin-content <?php echo ($_GET['tab'] ?? '') == 'relawan' ? 'active' : ''; ?>">
@@ -335,10 +495,16 @@ $pesan_belum_dibaca = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM kontak_
                         <div class="no-data">Belum ada relawan yang terdaftar.</div>
                     <?php else: ?>
                         <div class="table-responsive">
+                    <div class="admin-list-header">
+                        <h3 class="admin-list-title">
+                            👥 Daftar Relawan
+                            <span class="admin-list-count">(<?= count($users_list); ?> orang)</span>
+                        </h3>
+                    </div>                            
                             <table>
                                 <thead>
                                     <tr>
-                                        <th>No</th><th>Nama</th><th>Email</th><th>Telepon</th><th>Bidang</th><th>Tanggal Daftar</th><th>Aksi</th>
+                                        <th>No</th><th>Nama</th><th>Email</th><th>Telepon</th><th>Tanggal Daftar</th><th>Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -347,14 +513,10 @@ $pesan_belum_dibaca = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM kontak_
                                             <td><?php echo $no++; ?></td>
                                             <td><?php echo $user['nama_user']; ?></td>
                                             <td><?php echo $user['email_user']; ?></td>
-                                            <td><?php echo $user['telepon_user']; ?></td>
-                                            <td><?php 
-                                                $bidang_labels = ['penanaman' => 'Penanaman', 'edukasi' => 'Edukasi', 'publikasi' => 'Publikasi', 'dokumentasi' => 'Dokumentasi'];
-                                                echo $bidang_labels[$user['bidang_user']] ?? $user['bidang_user'];
-                                            ?></td>
+                                            <td><?php echo $user['telepon_user'] ?: '-'; ?></td>
                                             <td><?php echo date('d/m/Y', strtotime($user['tanggal_daftar_user'])); ?></td>
                                             <td>
-                                                <button class="btn btn-sm btn-edit" onclick="editUser(<?php echo $user['id_user']; ?>)">Edit</button>
+                                                <button type="button" class="btn btn-sm btn-edit" onclick="editUser(<?php echo $user['id_user']; ?>)">Edit</button>
                                                 <button class="btn btn-sm btn-danger" onclick="deleteUser(<?php echo $user['id_user']; ?>, '<?php echo addslashes($user['nama_user']); ?>')">Hapus</button>
                                             </td>
                                         </tr>
@@ -377,23 +539,41 @@ $pesan_belum_dibaca = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM kontak_
                 <?php if (isset($_GET['kegiatan_updated'])): ?><div class="alert success">✅ Kegiatan berhasil diperbarui!</div><?php endif; ?>
                 <?php if (isset($_GET['kegiatan_deleted'])): ?><div class="alert success">✅ Kegiatan berhasil dihapus!</div><?php endif; ?>
 
+                <button class="btn btn-add" onclick="showModal('add-kegiatan')" style="margin-bottom: 1.5rem;">➕ Tambah Kegiatan Baru</button>
                 <div class="card">
-                    <button class="btn btn-add" onclick="showModal('add-kegiatan')" style="margin-bottom: 1.5rem;">➕ Tambah Kegiatan Baru</button>
-
                     <?php if (empty($kegiatan_list)): ?>
                         <div class="no-data">Belum ada kegiatan yang terdaftar.</div>
                     <?php else: ?>
                         <div class="table-responsive">
+                        <div class="admin-list-header">
+                            <h3 class="admin-list-title">
+                                📅 Daftar Kegiatan
+                                <span class="admin-list-count">(<?= count($kegiatan_list); ?> kegiatan)</span>
+                            </h3>
+                        </div>
                             <table>
                                 <thead>
-                                    <tr><th>No</th><th>Judul</th><th>Tanggal</th><th>Lokasi</th><th>Status</th><th>Aksi</th></tr>
+                                    <tr><th>No</th><th>Gambar</th><th>Judul</th><th>Jenis</th><th>Tanggal</th><th>Lokasi</th><th>Status</th><th>Kuota</th><th>Aksi</th></tr>
                                 </thead>
                                 <tbody>
                                     <?php $no = 1; foreach ($kegiatan_list as $kegiatan): ?>
                                         <tr>
                                             <td><?php echo $no++; ?></td>
+                                            <td>
+                                                <?php if (!empty($kegiatan['gambar_kegiatan'])): ?>
+                                                    <img src="assets/img/kegiatan/<?php echo htmlspecialchars($kegiatan['gambar_kegiatan']); ?>" class="admin-table-photo" alt="Gambar">
+                                                <?php else: ?>
+                                                    <div class="admin-avatar-placeholder">📷</div>
+                                                <?php endif; ?>
+                                            </td>
                                             <td><?php echo $kegiatan['judul_kegiatan']; ?></td>
-                                            <td><?php echo $kegiatan['tanggal_kegiatan']; ?></td>
+                                            <td>
+                                                <?php 
+                                                $jenis_labels = ['penanaman' => 'Penanaman', 'edukasi' => 'Edukasi', 'kampanye' => 'Kampanye', 'kolaborasi' => 'Kolaborasi'];
+                                                echo $jenis_labels[$kegiatan['jenis_kegiatan']] ?? $kegiatan['jenis_kegiatan'];
+                                                ?>
+                                            </td>
+                                            <td><?php echo date('d/m/Y', strtotime($kegiatan['tanggal_kegiatan'])); ?></td>
                                             <td><?php echo $kegiatan['lokasi_kegiatan']; ?></td>
                                             <td>
                                                 <span class="status-badge status-<?php echo $kegiatan['status_kegiatan']; ?>">
@@ -403,14 +583,161 @@ $pesan_belum_dibaca = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM kontak_
                                                     ?>
                                                 </span>
                                             </td>
+                                            <td><?php echo $kegiatan['kuota_relawan'] ?? 0; ?></td>
                                             <td>
-                                                <button class="btn btn-sm btn-edit" onclick="editKegiatan(<?php echo $kegiatan['id_kegiatan']; ?>)">Edit</button>
+                                                <button type="button" class="btn btn-sm btn-edit" onclick="editKegiatan(<?php echo $kegiatan['id_kegiatan']; ?>)">Edit</button>
                                                 <button class="btn btn-sm btn-danger" onclick="deleteKegiatan(<?php echo $kegiatan['id_kegiatan']; ?>, '<?php echo addslashes($kegiatan['judul_kegiatan']); ?>')">Hapus</button>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
                                 </tbody>
                             </table>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- TAB PENDAFTARAN -->
+            <div id="tab-pendaftaran" class="admin-content <?php echo ($_GET['tab'] ?? '') == 'pendaftaran' ? 'active' : ''; ?>">
+                <div class="content-header">
+                    <h2>Kelola Pendaftaran Kegiatan</h2>
+                    <p class="subtitle">Daftar relawan yang mendaftar kegiatan, dikelompokkan per kegiatan</p>
+                </div>
+
+                <?php if (isset($_GET['pendaftaran_updated'])): ?><div class="alert success">✅ Status kehadiran berhasil diperbarui!</div><?php endif; ?>
+                <?php if (isset($_GET['pendaftaran_deleted'])): ?><div class="alert success">✅ Pendaftaran berhasil dihapus!</div><?php endif; ?>
+
+                <div class="card">
+                    <?php if (empty($pendaftaran_list)): ?>
+                        <div class="no-data">Belum ada pendaftaran kegiatan.</div>
+                    <?php else: ?>
+                        <?php
+                        // Group pendaftaran by kegiatan
+                        $grouped_pendaftaran = [];
+                        foreach ($pendaftaran_list as $daftar) {
+                            $id_kegiatan = $daftar['id_kegiatan'];
+                            if (!isset($grouped_pendaftaran[$id_kegiatan])) {
+                                $grouped_pendaftaran[$id_kegiatan] = [
+                                    'judul' => $daftar['judul_kegiatan'],
+                                    'tanggal' => $daftar['tanggal_kegiatan'],
+                                    'pendaftar' => []
+                                ];
+                            }
+                            $grouped_pendaftaran[$id_kegiatan]['pendaftar'][] = $daftar;
+                        }
+                        ?>
+
+                        <div class="pendaftaran-summary">
+                            <h3>📊 Ringkasan</h3>
+                            <div class="summary-stats">
+                                <div class="summary-item">
+                                    <span class="summary-label">Total Kegiatan:</span>
+                                    <strong><?php echo count($grouped_pendaftaran); ?></strong>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label">Total Pendaftaran:</span>
+                                    <strong><?php echo count($pendaftaran_list); ?></strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pendaftaran-grouped-container">
+                            <?php $kegiatan_no = 1; foreach ($grouped_pendaftaran as $id_kegiatan => $data_kegiatan): ?>
+                                <div class="pendaftaran-kegiatan-card">
+                                    <div class="kegiatan-card-header" onclick="toggleKegiatanCard(<?php echo $id_kegiatan; ?>)">
+                                        <div class="kegiatan-info">
+                                            <h3>
+                                                <span class="kegiatan-number">#<?php echo $kegiatan_no++; ?></span>
+                                                <?php echo htmlspecialchars($data_kegiatan['judul']); ?>
+                                            </h3>
+                                            <p class="kegiatan-meta">
+                                                <i class="fas fa-calendar"></i> <?php echo date('d M Y', strtotime($data_kegiatan['tanggal'])); ?>
+                                                <span class="pendaftar-count">
+                                                    <i class="fas fa-users"></i> <?php echo count($data_kegiatan['pendaftar']); ?> Pendaftar
+                                                </span>
+                                            </p>
+                                        </div>
+                                        <div class="toggle-icon">
+                                            <i class="fas fa-chevron-down"></i>
+                                        </div>
+                                    </div>
+
+                                    <div class="kegiatan-card-body" id="kegiatan-body-<?php echo $id_kegiatan; ?>">
+                                        <div class="table-responsive">
+                                            <table>
+                                                <thead>
+                                                    <tr>
+                                                        <th>No</th>
+                                                        <th>Nama Relawan</th>
+                                                        <th>Email</th>
+                                                        <th>Status</th>
+                                                        <th>Tanggal Daftar</th>
+                                                        <th>Aksi</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <?php $no = 1; foreach ($data_kegiatan['pendaftar'] as $daftar): ?>
+                                                        <tr>
+                                                            <td><?php echo $no++; ?></td>
+                                                            <td><strong><?php echo htmlspecialchars($daftar['nama_user']); ?></strong></td>
+                                                            <td><?php echo htmlspecialchars($daftar['email_user']); ?></td>
+                                                            <td>
+                                                                <span class="status-badge status-<?php echo $daftar['status_kehadiran']; ?>">
+                                                                    <?php 
+                                                                    $kehadiran_labels = ['terdaftar' => 'Terdaftar', 'hadir' => 'Hadir', 'tidak_hadir' => 'Tidak Hadir'];
+                                                                    echo $kehadiran_labels[$daftar['status_kehadiran']] ?? $daftar['status_kehadiran'];
+                                                                    ?>
+                                                                </span>
+                                                            </td>
+                                                            <td><?php echo date('d/m/Y H:i', strtotime($daftar['tanggal_daftar'])); ?></td>
+                                                            <td>
+                                                                <button type="button" class="btn btn-sm btn-edit" onclick="editPendaftaran(<?php echo $daftar['id_pendaftaran']; ?>, event)">Edit</button>
+                                                                <button class="btn btn-sm btn-danger" onclick="deletePendaftaran(<?php echo $daftar['id_pendaftaran']; ?>, '<?php echo addslashes($daftar['nama_user']); ?>')">Hapus</button>
+                                                            </td>
+                                                        </tr>
+                                                    <?php endforeach; ?>
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <?php
+                                        // Hitung statistik per kegiatan
+                                        $terdaftar = 0;
+                                        $hadir = 0;
+                                        $tidak_hadir = 0;
+                                        foreach ($data_kegiatan['pendaftar'] as $p) {
+                                            if ($p['status_kehadiran'] == 'terdaftar') $terdaftar++;
+                                            elseif ($p['status_kehadiran'] == 'hadir') $hadir++;
+                                            elseif ($p['status_kehadiran'] == 'tidak_hadir') $tidak_hadir++;
+                                        }
+                                        ?>
+
+                                        <div class="kegiatan-stats">
+                                            <div class="stat-box-mini stat-terdaftar">
+                                                <i class="fas fa-user-clock"></i>
+                                                <div>
+                                                    <strong><?php echo $terdaftar; ?></strong>
+                                                    <span>Terdaftar</span>
+                                                </div>
+                                            </div>
+                                            <div class="stat-box-mini stat-hadir">
+                                                <i class="fas fa-user-check"></i>
+                                                <div>
+                                                    <strong><?php echo $hadir; ?></strong>
+                                                    <span>Hadir</span>
+                                                </div>
+                                            </div>
+                                            <div class="stat-box-mini stat-tidak-hadir">
+                                                <i class="fas fa-user-times"></i>
+                                                <div>
+                                                    <strong><?php echo $tidak_hadir; ?></strong>
+                                                    <span>Tidak Hadir</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -427,20 +754,32 @@ $pesan_belum_dibaca = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM kontak_
                 <?php if (isset($_GET['artikel_updated'])): ?><div class="alert success">✅ Artikel berhasil diperbarui!</div><?php endif; ?>
                 <?php if (isset($_GET['artikel_deleted'])): ?><div class="alert success">✅ Artikel berhasil dihapus!</div><?php endif; ?>
 
+                <button class="btn btn-add" onclick="showModal('add-artikel')" style="margin-bottom: 1.5rem;">➕ Tambah Artikel Baru</button>
                 <div class="card">
-                    <button class="btn btn-add" onclick="showModal('add-artikel')" style="margin-bottom: 1.5rem;">➕ Tambah Artikel Baru</button>
                     <?php if (empty($artikel_list)): ?>
                         <div class="no-data">Belum ada Artikel yang terdaftar.</div>
                     <?php else: ?>
                         <div class="table-responsive">
+                        <div class="admin-list-header">
+                            <h3 class="admin-list-title">
+                                📰 Daftar Artikel
+                                <span class="admin-list-count">(<?= count($artikel_list); ?> artikel)</span>
+                            </h3>
+                        </div>                            
                             <table>
                                 <thead>
-                                    <tr><th>No</th><th>Judul</th><th>Tanggal</th><th>Sumber</th><th>Aksi</th></tr>
+                                    <tr><th>No</th><th>Kategori</th><th>Judul</th><th>Tanggal</th><th>Sumber</th><th>Aksi</th></tr>
                                 </thead>
                                 <tbody>
                                     <?php $no = 1; foreach ($artikel_list as $artikel): ?>
                                         <tr>
                                             <td><?php echo $no++; ?></td>
+                                            <td>
+                                                <?php 
+                                                $kategori_labels = ['edukasi' => 'Edukasi', 'pandangan' => 'Pandangan', 'tips' => 'Tips', 'cerita' => 'Cerita'];
+                                                echo $kategori_labels[$artikel['kategori_artikel']] ?? $artikel['kategori_artikel'];
+                                                ?>
+                                            </td>
                                             <td><?php echo $artikel['judul_artikel']; ?></td>
                                             <td><?php echo $artikel['tanggal_artikel']; ?></td>
                                             <td><?php echo $artikel['sumber_artikel']; ?></td>
@@ -457,7 +796,7 @@ $pesan_belum_dibaca = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM kontak_
                 </div>
             </div>
 
-            <!-- TAB TIM (dengan form inline) -->
+            <!-- TAB TIM -->
             <div id="tab-tim" class="admin-content <?php echo ($_GET['tab'] ?? '') == 'tim' ? 'active' : ''; ?>">
                 <div class="content-header">
                     <h2>Kelola Tim</h2>
@@ -469,62 +808,9 @@ $pesan_belum_dibaca = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM kontak_
                 <?php if (isset($_GET['tim_deleted'])): ?><div class="alert success">✅ Tim berhasil dihapus!</div><?php endif; ?>
                 <?php if ($message): ?><div class="alert <?php echo $message_type; ?>"><?php echo $message; ?></div><?php endif; ?>
 
-                <div class="tim-form-section">
-                    <h3><?php echo $edit_tim ? '✏️ Edit Tim' : '➕ Tambah Tim Baru'; ?></h3>
-                    
-                    <form method="POST" enctype="multipart/form-data">
-                        <input type="hidden" name="action" value="<?php echo $edit_tim ? 'edit_tim' : 'add_tim'; ?>">
-                        <?php if ($edit_tim): ?><input type="hidden" name="id_tim" value="<?php echo $edit_tim['id_tim']; ?>"><?php endif; ?>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Nama Lengkap *</label>
-                                <input type="text" name="nama_tim" required value="<?php echo $edit_tim ? htmlspecialchars($edit_tim['nama_tim']) : ''; ?>">
-                            </div>
-                            <div class="form-group">
-                                <label>Posisi/Jabatan *</label>
-                                <input type="text" name="posisi_tim" required value="<?php echo $edit_tim ? htmlspecialchars($edit_tim['posisi_tim']) : ''; ?>">
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Biografi/Deskripsi *</label>
-                            <textarea name="bio_tim" required rows="4"><?php echo $edit_tim ? htmlspecialchars($edit_tim['bio_tim']) : ''; ?></textarea>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Instagram (username saja)</label>
-                                <input type="text" name="ig_tim" value="<?php echo $edit_tim ? htmlspecialchars($edit_tim['ig_tim']) : ''; ?>">
-                            </div>
-                            <div class="form-group">
-                                <label>X/Twitter (username saja)</label>
-                                <input type="text" name="x_tim" value="<?php echo $edit_tim ? htmlspecialchars($edit_tim['x_tim']) : ''; ?>">
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Facebook (username saja)</label>
-                            <input type="text" name="fb_tim" value="<?php echo $edit_tim ? htmlspecialchars($edit_tim['fb_tim']) : ''; ?>">
-                        </div>
-
-                        <div class="form-group">
-                            <label>Foto Profil <?php echo !$edit_tim ? '*' : '(Opsional)'; ?></label>
-                            <input type="file" id="photo" name="photo" accept="image/*" <?php echo !$edit_tim ? 'required' : ''; ?>>
-                            <?php if ($edit_tim && !empty($edit_tim['photo_tim'])): ?>
-                                <div class="tim-form-photo-preview">
-                                    <img src="assets/img/tim/<?php echo htmlspecialchars($edit_tim['photo_tim']); ?>" 
-                                        class="admin-table-photo">
-                                </div>
-                            <?php endif; ?>
-                        </div>
-
-                        <div class="form-buttons">
-                            <button type="submit" class="btn btn-success"><?php echo $edit_tim ? '💾 Perbarui Tim' : '➕ Tambah Tim'; ?></button>
-                            <?php if ($edit_tim): ?><a href="admin.php?tab=tim" class="btn-cancel">← Batal</a><?php endif; ?>
-                        </div>
-                    </form>
-                </div>
+                <button class="btn btn-add" onclick="showModal('add-tim')" style="margin-bottom: 1.5rem;">
+                    ➕ Tambah Tim Baru
+                </button>
 
                 <div class="card">
                     <div class="admin-list-header">
@@ -557,7 +843,7 @@ $pesan_belum_dibaca = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM kontak_
                                             <td><?php echo htmlspecialchars($tim['posisi_tim']); ?></td>
                                             <td><?php echo htmlspecialchars(substr($tim['bio_tim'], 0, 50)) . (strlen($tim['bio_tim']) > 50 ? '...' : ''); ?></td>
                                             <td>
-                                                <button class="btn btn-sm btn-edit" onclick="editTim(<?php echo $tim['id_tim']; ?>)">Edit</button>
+                                                <button type="button" class="btn btn-sm btn-edit" onclick="editTim(<?php echo $tim['id_tim']; ?>)">Edit</button>
                                                 <button class="btn btn-sm btn-danger" onclick="deleteTim(<?php echo $tim['id_tim']; ?>, '<?php echo addslashes($tim['nama_tim']); ?>')">Hapus</button>
                                             </td>
                                         </tr>
@@ -581,42 +867,13 @@ $pesan_belum_dibaca = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM kontak_
                 <?php if (isset($_GET['foto_uploaded'])): ?><div class="alert success">✅ Foto berhasil diunggah!</div><?php endif; ?>
                 <?php if (isset($_GET['foto_deleted'])): ?><div class="alert success">✅ Foto berhasil dihapus!</div><?php endif; ?>
 
-                <div class="admin-galeri-upload-section">
-                    <h3>📤 Upload Foto Baru</h3>
-                    
-                    <form method="POST" enctype="multipart/form-data">
-                        <input type="hidden" name="action" value="upload_foto">
-                        
-                        <div class="admin-galeri-form-grid">
-                            <div>
-                                <label class="admin-galeri-form-label">Pilih Kegiatan *</label>
-                                <select name="id_kegiatan" required class="admin-galeri-form-select">
-                                    <option value="">-- Pilih Kegiatan --</option>
-                                    <?php foreach ($kegiatan_list as $k): ?>
-                                        <option value="<?php echo $k['id_kegiatan']; ?>"><?php echo $k['judul_kegiatan']; ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            
-                            <div>
-                                <label class="admin-galeri-form-label">Pilih Foto *</label>
-                                <input type="file" name="foto" accept="image/*" required class="admin-galeri-form-input">
-                            </div>
-                        </div>
-                        
-                        <div class="admin-galeri-form-full">
-                            <label class="admin-galeri-form-label">Deskripsi (Opsional)</label>
-                            <textarea name="deskripsi_galeri" placeholder="Tulis deskripsi foto..." class="admin-galeri-form-textarea"></textarea>
-                        </div>
-                        
-                        <button type="submit" class="admin-galeri-submit-btn">
-                            📤 Upload Foto
-                        </button>
-                    </form>
-                </div>
-
+                <button class="btn btn-add" onclick="showModal('upload-galeri')" style="margin-bottom: 1.5rem;">
+                     📤 Upload Foto Baru
+                </button>
                 <div class="admin-galeri-display-section">
-                    <h3>📷 Daftar Foto (Total: <?php echo count($fotos_list); ?>)</h3>
+                    <div class="admin-list-header">
+                    <h3 class="admin-list-header-title">📷 Daftar Foto <span class="admin-list-count">(<?php echo count($fotos_list); ?> foto)</span></h3>
+                    </div>
                     
                     <?php if (count($fotos_list) > 0): ?>
                         <div class="admin-galeri-grid">
@@ -631,17 +888,50 @@ $pesan_belum_dibaca = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM kontak_
                                         <p class="admin-galeri-item-description">📝 <?php echo $foto['deskripsi_galeri'] ?: 'Tidak ada deskripsi'; ?></p>
                                         <p class="admin-galeri-item-date">📅 <?php echo date('d M Y H:i', strtotime($foto['tanggal_upload_galeri'])); ?></p>
                                         
-                                        <form method="POST" class="admin-galeri-delete-form">
+                                    <div class="admin-galeri-actions">
+
+                                        <button type="button" class="btn btn-sm btn-edit" onclick="editGaleri(<?= $foto['id_galeri']; ?>)">Edit</button>
+
+                                        <form method="POST"
+                                            action="proses/admin_actions.php"
+                                            class="admin-galeri-action-form">
+
                                             <input type="hidden" name="action" value="delete_foto">
-                                            <input type="hidden" name="id_foto" value="<?php echo $foto['id_galeri']; ?>">
-                                            <button type="submit" onclick="return confirm('Hapus foto ini?');" class="admin-galeri-delete-btn">
+                                            <input type="hidden" name="id_foto" value="<?= $foto['id_galeri']; ?>">
+
+                                            <button type="submit"
+                                                    class="btn btn-sm btn-danger"
+                                                    onclick="return confirm('Hapus foto ini?')">
                                                 Hapus
                                             </button>
                                         </form>
+
+                                    </div>
+
                                     </div>
                                 </div>
                             <?php endforeach; ?>
                         </div>
+
+                        <?php if ($total_pages > 1): ?>
+                        <div class="admin-pagination">
+                            <?php if ($page > 1): ?>
+                                <a href="?tab=galeri&page=<?php echo $page - 1; ?>" class="page-btn">« Prev</a>
+                            <?php endif; ?>
+
+                            <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                                <a href="?tab=galeri&page=<?php echo $i; ?>"
+                                class="page-btn <?php echo $i == $page ? 'active' : ''; ?>">
+                                    <?php echo $i; ?>
+                                </a>
+                            <?php endfor; ?>
+
+                            <?php if ($page < $total_pages): ?>
+                                <a href="?tab=galeri&page=<?php echo $page + 1; ?>" class="page-btn">Next »</a>
+                            <?php endif; ?>
+                        </div>
+                        <?php endif; ?>
+                        
                     <?php else: ?>
                         <div class="admin-galeri-empty">
                             <p>📸 Belum ada foto yang diunggah</p>
@@ -649,7 +939,7 @@ $pesan_belum_dibaca = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM kontak_
                     <?php endif; ?>
                 </div>
             </div>
-        
+            
             <!-- TAB PESAN -->
             <div id="tab-pesan" class="admin-content <?php echo ($_GET['tab'] ?? '') == 'pesan' ? 'active' : ''; ?>">
                 <div class="content-header">
@@ -718,41 +1008,47 @@ $pesan_belum_dibaca = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM kontak_
         </div>
     </div>
 
-    <!-- MODALS -->
+    <!-- ==================== MODALS ==================== -->
+    
+    <!-- Modal Edit User -->
     <div id="modal-edit-user" class="modal">
         <div class="modal-content">
             <button class="modal-close" onclick="closeModal('edit-user')">&times;</button>
             <h2>Edit Data User</h2>
-            <form method="POST" action="admin_actions.php">
+            <form method="POST" action="proses/admin_actions.php">
                 <input type="hidden" name="action" value="update_user">
                 <input type="hidden" name="user_id" id="edit-user-id">
                 <div class="form-group"><label>Nama Lengkap *</label><input type="text" name="nama_user" id="edit-nama" required></div>
                 <div class="form-group"><label>Email *</label><input type="email" name="email_user" id="edit-email" required></div>
-                <div class="form-group"><label>Telepon *</label><input type="tel" name="telepon_user" id="edit-telepon" required></div>
+                <div class="form-group"><label>Telepon</label><input type="tel" name="telepon_user" id="edit-telepon"></div>
                 <div class="form-group"><label>Alamat</label><textarea name="alamat_user" id="edit-alamat" rows="3"></textarea></div>
-                <div class="form-group">
-                    <label>Bidang Minat *</label>
-                    <select name="bidang_user" id="edit-bidang" required>
-                        <option value="penanaman">Penanaman Pohon</option>
-                        <option value="edukasi">Edukasi Lingkungan</option>
-                        <option value="publikasi">Publikasi & Media</option>
-                        <option value="dokumentasi">Dokumentasi</option>
-                    </select>
-                </div>
                 <button type="submit" class="btn btn-success">💾 Simpan Perubahan</button>
                 <button type="button" class="btn" onclick="closeModal('edit-user')" style="background: #666; color: white;">✖️ Batal</button>
             </form>
         </div>
     </div>
 
+    <!-- Modal Add Kegiatan -->
     <div id="modal-add-kegiatan" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 700px;">
             <button class="modal-close" onclick="closeModal('add-kegiatan')">&times;</button>
             <h2>Tambah Kegiatan Baru</h2>
-            <form method="POST" action="admin_actions.php">
+            <form method="POST" action="proses/admin_actions.php" enctype="multipart/form-data">
                 <input type="hidden" name="action" value="add_kegiatan">
+                <div class="form-group">
+                    <label>Jenis Kegiatan *</label>
+                    <select name="jenis_kegiatan" required>
+                        <option value="">-- Pilih Jenis --</option>
+                        <option value="penanaman">Penanaman</option>
+                        <option value="edukasi">Edukasi</option>
+                        <option value="kampanye">Kampanye</option>
+                        <option value="kolaborasi">Kolaborasi</option>
+                    </select>
+                </div>
                 <div class="form-group"><label>Judul Kegiatan *</label><input type="text" name="judul_kegiatan" required></div>
-                <div class="form-group"><label>Tanggal *</label><input type="text" name="tanggal_kegiatan" placeholder="Contoh: 25 Desember 2024" required></div>
+                <div class="form-group"><label>Gambar Kegiatan</label><input type="file" name="gambar_kegiatan" accept="image/*"></div>
+                <div class="form-group"><label>Tanggal *</label><input type="date" name="tanggal_kegiatan" required></div>
+                <div class="form-group"><label>Waktu *</label><input type="text" name="waktu_kegiatan" placeholder="Contoh: 08:00 - 12:00 WIB" required></div>
                 <div class="form-group"><label>Lokasi *</label><input type="text" name="lokasi_kegiatan" required></div>
                 <div class="form-group"><label>Deskripsi *</label><textarea name="deskripsi_kegiatan" rows="4" required></textarea></div>
                 <div class="form-group">
@@ -763,21 +1059,42 @@ $pesan_belum_dibaca = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM kontak_
                         <option value="selesai">Selesai</option>
                     </select>
                 </div>
+                <div class="form-group"><label>Kuota Relawan</label><input type="number" name="kuota_relawan" min="0" value="0"></div>
+                <div class="form-group"><label>Link Grup WhatsApp</label><input type="url" name="link_grup" placeholder="https://chat.whatsapp.com/..."></div>
+                <div class="form-group"><label>Manfaat Kegiatan</label><textarea name="manfaat_kegiatan" rows="3" placeholder="Pisahkan dengan enter untuk setiap manfaat"></textarea></div>
+                <div class="form-group"><label>Syarat Kegiatan</label><textarea name="syarat_kegiatan" rows="3" placeholder="Pisahkan dengan enter untuk setiap syarat"></textarea></div>
                 <button type="submit" class="btn btn-success">💾 Simpan Kegiatan</button>
                 <button type="button" class="btn" onclick="closeModal('add-kegiatan')" style="background: #666; color: white;">✖️ Batal</button>
             </form>
         </div>
     </div>
 
+    <!-- Modal Edit Kegiatan -->
     <div id="modal-edit-kegiatan" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 700px;">
             <button class="modal-close" onclick="closeModal('edit-kegiatan')">&times;</button>
             <h2>Edit Kegiatan</h2>
-            <form method="POST" action="admin_actions.php">
+            <form method="POST" action="proses/admin_actions.php" enctype="multipart/form-data">
                 <input type="hidden" name="action" value="update_kegiatan">
                 <input type="hidden" name="id_kegiatan" id="edit-kegiatan-id">
+                <div class="form-group">
+                    <label>Jenis Kegiatan *</label>
+                    <select name="jenis_kegiatan" id="edit-kegiatan-jenis" required>
+                        <option value="">-- Pilih Jenis --</option>
+                        <option value="penanaman">Penanaman</option>
+                        <option value="edukasi">Edukasi</option>
+                        <option value="kampanye">Kampanye</option>
+                        <option value="kolaborasi">Kolaborasi</option>
+                    </select>
+                </div>
                 <div class="form-group"><label>Judul Kegiatan *</label><input type="text" name="judul_kegiatan" id="edit-kegiatan-judul" required></div>
-                <div class="form-group"><label>Tanggal *</label><input type="text" name="tanggal_kegiatan" id="edit-kegiatan-tanggal" required></div>
+                <div class="form-group">
+                    <label>Gambar Kegiatan (Opsional - kosongkan jika tidak ingin mengubah)</label>
+                    <input type="file" name="gambar_kegiatan" accept="image/*">
+                    <small id="edit-kegiatan-current-image" style="display: block; margin-top: 5px; color: #666;"></small>
+                </div>
+                <div class="form-group"><label>Tanggal *</label><input type="date" name="tanggal_kegiatan" id="edit-kegiatan-tanggal" required></div>
+                <div class="form-group"><label>Waktu *</label><input type="text" name="waktu_kegiatan" id="edit-kegiatan-waktu" required></div>
                 <div class="form-group"><label>Lokasi *</label><input type="text" name="lokasi_kegiatan" id="edit-kegiatan-lokasi" required></div>
                 <div class="form-group"><label>Deskripsi *</label><textarea name="deskripsi_kegiatan" id="edit-kegiatan-deskripsi" rows="4" required></textarea></div>
                 <div class="form-group">
@@ -788,17 +1105,126 @@ $pesan_belum_dibaca = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM kontak_
                         <option value="selesai">Selesai</option>
                     </select>
                 </div>
+                <div class="form-group"><label>Kuota Relawan</label><input type="number" name="kuota_relawan" id="edit-kegiatan-kuota" min="0"></div>
+                <div class="form-group"><label>Link Grup WhatsApp</label><input type="url" name="link_grup" id="edit-kegiatan-link"></div>
+                <div class="form-group"><label>Manfaat Kegiatan</label><textarea name="manfaat_kegiatan" id="edit-kegiatan-manfaat" rows="3"></textarea></div>
+                <div class="form-group"><label>Syarat Kegiatan</label><textarea name="syarat_kegiatan" id="edit-kegiatan-syarat" rows="3"></textarea></div>
                 <button type="submit" class="btn btn-success">💾 Simpan Perubahan</button>
                 <button type="button" class="btn" onclick="closeModal('edit-kegiatan')" style="background: #666; color: white;">✖️ Batal</button>
             </form>
         </div>
     </div>
 
+    <!-- Modal Edit Pendaftaran -->
+    <div id="modal-edit-pendaftaran" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('edit-pendaftaran')">&times;</button>
+            <h2>Edit Status Kehadiran</h2>
+            <form method="POST" action="proses/admin_actions.php">
+                <input type="hidden" name="action" value="update_pendaftaran">
+                <input type="hidden" name="id_pendaftaran" id="edit-pendaftaran-id">
+                <div class="form-group">
+                    <label>Status Kehadiran *</label>
+                    <select name="status_kehadiran" id="edit-pendaftaran-status" required>
+                        <option value="terdaftar">Terdaftar</option>
+                        <option value="hadir">Hadir</option>
+                        <option value="tidak_hadir">Tidak Hadir</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-success">💾 Simpan Perubahan</button>
+                <button type="button" class="btn" onclick="closeModal('edit-pendaftaran')" style="background: #666; color: white;">✖️ Batal</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Upload Galeri -->
+    <div id="modal-upload-galeri" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('upload-galeri')">&times;</button>
+            <h2>📤 Upload Foto Baru</h2>
+            
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="upload_foto">
+                
+                <div class="form-group">
+                    <label>Pilih Kegiatan *</label>
+                    <select name="id_kegiatan" required>
+                        <option value="">-- Pilih Kegiatan --</option>
+                        <?php foreach ($kegiatan_list as $k): ?>
+                            <option value="<?php echo $k['id_kegiatan']; ?>">
+                                <?php echo htmlspecialchars($k['judul_kegiatan']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Pilih Foto *</label>
+                    <input type="file" name="foto" accept="image/*" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Deskripsi (Opsional)</label>
+                    <textarea name="deskripsi_galeri" 
+                            placeholder="Tulis deskripsi foto..." 
+                            rows="4"></textarea>
+                </div>
+                
+                <button type="submit" class="btn btn-success">📤 Upload Foto</button>
+                <button type="button" class="btn" onclick="closeModal('upload-galeri')" style="background: #666; color: white;">✖️ Batal</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Edit Galeri -->
+    <div id="modal-edit-galeri" class="modal">
+        <div class="modal-content" style="max-width:600px">
+            <button class="modal-close" onclick="closeModal('edit-galeri')">&times;</button>
+            <h2>Edit Foto Galeri</h2>
+
+            <form method="POST"
+                action="proses/admin_actions.php"
+                enctype="multipart/form-data">
+
+                <input type="hidden" name="action" value="update_galeri">
+                <input type="hidden" name="id_galeri" id="edit-galeri-id">
+
+                <div class="form-group">
+                    <label>Foto Saat Ini</label>
+                    <img id="edit-galeri-preview"
+                        src=""
+                        style="width:100%;border-radius:8px">
+                </div>
+
+                <div class="form-group">
+                    <label>Ganti Foto (Opsional)</label>
+                    <input type="file" name="foto_baru" accept="image/*">
+                </div>
+
+                <div class="form-group">
+                    <label>Deskripsi</label>
+                    <textarea name="deskripsi_galeri"
+                            id="edit-galeri-deskripsi"
+                            rows="4"></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-success">💾 Simpan</button>
+                <button type="button"
+                        class="btn"
+                        onclick="closeModal('edit-galeri')"
+                        style="background:#666;color:white">
+                    ✖️ Batal
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Modal Add Artikel -->
     <div id="modal-add-artikel" class="modal">
         <div class="modal-content">
             <button class="modal-close" onclick="closeModal('add-artikel')">&times;</button>
             <h2>Tambah Artikel Baru</h2>
-            <form method="POST" action="admin_actions.php">
+            <form method="POST" action="proses/admin_actions.php" enctype="multipart/form-data">
                 <input type="hidden" name="action" value="add_artikel">
                 <div class="form-group">
                     <label>Kategori *</label>
@@ -813,7 +1239,11 @@ $pesan_belum_dibaca = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM kontak_
                 <div class="form-group"><label>Judul Artikel *</label><input type="text" name="judul_artikel" required></div>
                 <div class="form-group"><label>Tanggal *</label><input type="date" name="tanggal_artikel" required></div>
                 <div class="form-group"><label>Sumber *</label><input type="text" name="sumber_artikel" required></div>
-                <div class="form-group"><label>Gambar Artikel (nama file)</label><input type="text" name="gambar_artikel" placeholder="contoh: artikel1.jpg"></div>
+                <div class="form-group">
+                    <label>Gambar Artikel</label>
+                    <input type="file" name="gambar_artikel" accept="image/*">
+                    <small>Format: jpg, jpeg, png, webp (max 5MB)</small>
+                </div>
                 <div class="form-group"><label>Isi Artikel *</label><textarea name="isi_artikel" rows="12" required></textarea></div>
                 <button type="submit" class="btn btn-success">💾 Simpan Artikel</button>
                 <button type="button" class="btn" onclick="closeModal('add-artikel')" style="background: #666; color: white;">✖️ Batal</button>
@@ -821,11 +1251,12 @@ $pesan_belum_dibaca = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM kontak_
         </div>
     </div>
 
+    <!-- Modal Edit Artikel -->
     <div id="modal-edit-artikel" class="modal">
         <div class="modal-content">
             <button class="modal-close" onclick="closeModal('edit-artikel')">&times;</button>
             <h2>Edit Artikel</h2>
-            <form method="POST" action="admin_actions.php">
+            <form method="POST" action="proses/admin_actions.php" enctype="multipart/form-data">
                 <input type="hidden" name="action" value="update_artikel">
                 <input type="hidden" name="id_artikel" id="edit-artikel-id">
                 <div class="form-group">
@@ -841,7 +1272,11 @@ $pesan_belum_dibaca = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM kontak_
                 <div class="form-group"><label>Judul Artikel *</label><input type="text" name="judul_artikel" id="edit-artikel-judul" required></div>
                 <div class="form-group"><label>Tanggal *</label><input type="date" name="tanggal_artikel" id="edit-artikel-tanggal" required></div>
                 <div class="form-group"><label>Sumber *</label><input type="text" name="sumber_artikel" id="edit-artikel-sumber" required></div>
-                <div class="form-group"><label>Gambar Artikel (nama file)</label><input type="text" name="gambar_artikel" id="edit-artikel-gambar"></div>
+                <div class="form-group">
+                    <label>Gambar Artikel (Opsional)</label>
+                    <input type="file" name="gambar_artikel" accept="image/*">
+                    <small id="edit-artikel-current-image"></small>
+                </div>
                 <div class="form-group"><label>Isi Artikel *</label><textarea name="isi_artikel" id="edit-artikel-isi" rows="12" required></textarea></div>
                 <button type="submit" class="btn btn-success">💾 Simpan Perubahan</button>
                 <button type="button" class="btn" onclick="closeModal('edit-artikel')" style="background: #666; color: white;">✖️ Batal</button>
@@ -849,6 +1284,7 @@ $pesan_belum_dibaca = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM kontak_
         </div>
     </div>
 
+    <!-- Modal View Pesan -->
     <div id="modal-view-pesan" class="modal">
         <div class="modal-content" style="max-width: 700px;">
             <button class="modal-close" onclick="closeModal('view-pesan')">&times;</button>
@@ -857,11 +1293,120 @@ $pesan_belum_dibaca = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM kontak_
         </div>
     </div>
 
+    <!-- Modal Add Tim -->
+    <div id="modal-add-tim" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <button class="modal-close" onclick="closeModal('add-tim')">&times;</button>
+            <h2>➕ Tambah Tim Baru</h2>
+            
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="add_tim">
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Nama Lengkap *</label>
+                        <input type="text" name="nama_tim" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Posisi/Jabatan *</label>
+                        <input type="text" name="posisi_tim" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Biografi/Deskripsi *</label>
+                    <textarea name="bio_tim" required rows="4"></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Instagram (username saja)</label>
+                        <input type="text" name="ig_tim">
+                    </div>
+                    <div class="form-group">
+                        <label>X/Twitter (username saja)</label>
+                        <input type="text" name="x_tim">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Facebook (username saja)</label>
+                    <input type="text" name="fb_tim">
+                </div>
+
+                <div class="form-group">
+                    <label>Foto Profil *</label>
+                    <input type="file" name="photo" accept="image/*" required>
+                </div>
+
+                <button type="submit" class="btn btn-success">➕ Tambah Tim</button>
+                <button type="button" class="btn" onclick="closeModal('add-tim')" style="background: #666; color: white;">✖️ Batal</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Edit Tim -->
+    <div id="modal-edit-tim" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <button class="modal-close" onclick="closeModal('edit-tim')">&times;</button>
+            <h2>✏️ Edit Tim</h2>
+            
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="edit_tim">
+                <input type="hidden" name="id_tim" id="edit-tim-id">
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Nama Lengkap *</label>
+                        <input type="text" name="nama_tim" id="edit-tim-nama" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Posisi/Jabatan *</label>
+                        <input type="text" name="posisi_tim" id="edit-tim-posisi" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Biografi/Deskripsi *</label>
+                    <textarea name="bio_tim" id="edit-tim-bio" required rows="4"></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Instagram (username saja)</label>
+                        <input type="text" name="ig_tim" id="edit-tim-ig">
+                    </div>
+                    <div class="form-group">
+                        <label>X/Twitter (username saja)</label>
+                        <input type="text" name="x_tim" id="edit-tim-x">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Facebook (username saja)</label>
+                    <input type="text" name="fb_tim" id="edit-tim-fb">
+                </div>
+
+                <div class="form-group">
+                    <label>Foto Profil (Opsional - kosongkan jika tidak ingin mengubah)</label>
+                    <input type="file" name="photo" accept="image/*">
+                    <small id="edit-tim-current-photo" style="display: block; margin-top: 5px; color: #666;"></small>
+                </div>
+
+                <button type="submit" class="btn btn-success">💾 Perbarui Tim</button>
+                <button type="button" class="btn" onclick="closeModal('edit-tim')" style="background: #666; color: white;">✖️ Batal</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== JAVASCRIPT ==================== -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script>
     function postAction(action, data = {}) {
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = 'admin_actions.php';
+        form.action = 'proses/admin_actions.php';
         let html = `<input type="hidden" name="action" value="${action}">`;
         for (const key in data) html += `<input type="hidden" name="${key}" value="${data[key]}">`;
         form.innerHTML = html;
@@ -871,14 +1416,18 @@ $pesan_belum_dibaca = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM kontak_
 
     function showTab(tabName, event) {
         event.preventDefault();
-        const url = new URL(window.location);
-        url.searchParams.set('tab', tabName);
-        window.history.pushState({}, '', url);
+
         document.querySelectorAll('.admin-content').forEach(c => c.classList.remove('active'));
         document.querySelectorAll('.admin-nav-btn').forEach(b => b.classList.remove('active'));
+
         document.getElementById('tab-' + tabName).classList.add('active');
         event.target.classList.add('active');
+
+        if (tabName === 'statistik') {
+            setTimeout(initCharts, 50);
+        }
     }
+
 
     function showModal(name) { document.getElementById('modal-' + name).classList.add('active'); }
     function closeModal(name) { document.getElementById('modal-' + name).classList.remove('active'); }
@@ -890,9 +1439,8 @@ $pesan_belum_dibaca = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM kontak_
             document.getElementById('edit-user-id').value = d.id_user;
             document.getElementById('edit-nama').value = d.nama_user;
             document.getElementById('edit-email').value = d.email_user;
-            document.getElementById('edit-telepon').value = d.telepon_user;
+            document.getElementById('edit-telepon').value = d.telepon_user || '';
             document.getElementById('edit-alamat').value = d.alamat_user || '';
-            document.getElementById('edit-bidang').value = d.bidang_user;
             showModal('edit-user');
         });
     }
@@ -903,34 +1451,108 @@ $pesan_belum_dibaca = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM kontak_
         fetch('admin.php?ajax=get_kegiatan&id=' + id).then(r => r.json()).then(d => {
             if (d.error) return alert(d.error);
             document.getElementById('edit-kegiatan-id').value = d.id_kegiatan;
+            document.getElementById('edit-kegiatan-jenis').value = d.jenis_kegiatan;
             document.getElementById('edit-kegiatan-judul').value = d.judul_kegiatan;
             document.getElementById('edit-kegiatan-tanggal').value = d.tanggal_kegiatan;
+            document.getElementById('edit-kegiatan-waktu').value = d.waktu_kegiatan;
             document.getElementById('edit-kegiatan-lokasi').value = d.lokasi_kegiatan;
             document.getElementById('edit-kegiatan-deskripsi').value = d.deskripsi_kegiatan;
             document.getElementById('edit-kegiatan-status').value = d.status_kegiatan;
+            document.getElementById('edit-kegiatan-kuota').value = d.kuota_relawan || 0;
+            document.getElementById('edit-kegiatan-link').value = d.link_grup || '';
+            document.getElementById('edit-kegiatan-manfaat').value = d.manfaat_kegiatan || '';
+            document.getElementById('edit-kegiatan-syarat').value = d.syarat_kegiatan || '';
+            
+            const currentImg = document.getElementById('edit-kegiatan-current-image');
+            if (d.gambar_kegiatan) {
+                currentImg.textContent = `Gambar saat ini: ${d.gambar_kegiatan}`;
+                currentImg.style.display = 'block';
+            } else {
+                currentImg.style.display = 'none';
+            }
+            
             showModal('edit-kegiatan');
         });
     }
 
     function deleteKegiatan(id, judul) { if (confirm(`Hapus kegiatan: ${judul}?`)) postAction('delete_kegiatan', { id }); }
 
+    function editPendaftaran(id) {
+        const row = event.target.closest('tr');
+        const statusCell = row.cells[5].querySelector('.status-badge');
+        const statusClass = statusCell.className;
+        
+        let status = 'terdaftar';
+        if (statusClass.includes('status-hadir')) status = 'hadir';
+        else if (statusClass.includes('status-tidak_hadir')) status = 'tidak_hadir';
+        
+        document.getElementById('edit-pendaftaran-id').value = id;
+        document.getElementById('edit-pendaftaran-status').value = status;
+        
+        showModal('edit-pendaftaran');
+    }
+
+    function deletePendaftaran(id, nama) { if (confirm(`Hapus pendaftaran: ${nama}?`)) postAction('delete_pendaftaran', { id }); }
+
     function editArtikel(id) {
-        fetch('admin.php?ajax=get_artikel&id=' + id).then(r => r.json()).then(d => {
-            if (d.error) return alert(d.error);
-            document.getElementById('edit-artikel-id').value = d.id_artikel;
-            document.getElementById('edit-artikel-kategori').value = d.kategori_artikel;
-            document.getElementById('edit-artikel-judul').value = d.judul_artikel;
-            document.getElementById('edit-artikel-tanggal').value = d.tanggal_artikel;
-            document.getElementById('edit-artikel-sumber').value = d.sumber_artikel;
-            document.getElementById('edit-artikel-gambar').value = d.gambar_artikel || '';
-            document.getElementById('edit-artikel-isi').value = d.isi_artikel;
-            showModal('edit-artikel');
-        });
+        fetch('admin.php?ajax=get_artikel&id=' + id)
+            .then(r => r.json())
+            .then(d => {
+                if (d.error) return alert(d.error);
+
+                document.getElementById('edit-artikel-id').value = d.id_artikel;
+                document.getElementById('edit-artikel-kategori').value = d.kategori_artikel;
+                document.getElementById('edit-artikel-judul').value = d.judul_artikel;
+                document.getElementById('edit-artikel-tanggal').value = d.tanggal_artikel;
+                document.getElementById('edit-artikel-sumber').value = d.sumber_artikel;
+                document.getElementById('edit-artikel-isi').value = d.isi_artikel;
+
+                document.getElementById('edit-artikel-current-image').textContent =
+                    d.gambar_artikel ? 'Gambar saat ini: ' + d.gambar_artikel : '';
+
+                showModal('edit-artikel');
+            });
     }
 
     function deleteartikel(id, judul) { if (confirm(`Hapus artikel: ${judul}?`)) postAction('delete_artikel', { id }); }
 
-    function editTim(id) { window.location.href = 'admin.php?tab=tim&edit_tim=' + id; }
+    function editTim(id) {
+        // Ambil data dari row tabel
+        const row = event.target.closest('tr');
+        const cells = row.cells;
+        
+        // Set ID
+        document.getElementById('edit-tim-id').value = id;
+        
+        // Set data dari tabel
+        document.getElementById('edit-tim-nama').value = cells[1].querySelector('strong').textContent;
+        document.getElementById('edit-tim-posisi').value = cells[2].textContent;
+        document.getElementById('edit-tim-bio').value = cells[3].textContent.replace('...', '');
+        
+        // Ambil detail lengkap via AJAX
+        fetch('admin.php?ajax=get_tim&id=' + id)
+            .then(r => r.json())
+            .then(d => {
+                if (d.error) return alert(d.error);
+                
+                document.getElementById('edit-tim-nama').value = d.nama_tim;
+                document.getElementById('edit-tim-posisi').value = d.posisi_tim;
+                document.getElementById('edit-tim-bio').value = d.bio_tim;
+                document.getElementById('edit-tim-ig').value = d.ig_tim || '';
+                document.getElementById('edit-tim-x').value = d.x_tim || '';
+                document.getElementById('edit-tim-fb').value = d.fb_tim || '';
+                
+                const currentPhoto = document.getElementById('edit-tim-current-photo');
+                if (d.photo_tim) {
+                    currentPhoto.textContent = `Foto saat ini: ${d.photo_tim}`;
+                    currentPhoto.style.display = 'block';
+                } else {
+                    currentPhoto.style.display = 'none';
+                }
+                
+                showModal('edit-tim');
+            });
+    }
     function deleteTim(id, nama) { if (confirm(`Hapus tim: ${nama}?`)) postAction('delete_tim', { id_tim: id }); }
 
     function deletePesan(id, nama) { if (confirm(`Hapus pesan dari: ${nama}?`)) postAction('delete_pesan', { id }); }
@@ -979,6 +1601,129 @@ $pesan_belum_dibaca = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM kontak_
             if (fileName) fileName.textContent = e.target.files[0] ? '✓ ' + e.target.files[0].name : '';
         });
     }
+
+    function toggleKegiatanCard(id) {
+        const card = event.currentTarget.closest('.pendaftaran-kegiatan-card');
+        card.classList.toggle('active');
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const firstCard = document.querySelector('.pendaftaran-kegiatan-card');
+        if (firstCard) {
+            firstCard.classList.add('active');
+        }
+    });
+
+    function editGaleri(id) {
+        fetch('admin.php?ajax=get_galeri&id=' + id)
+            .then(r => r.json())
+            .then(d => {
+                if (d.error) return alert(d.error);
+
+                document.getElementById('edit-galeri-id').value = d.id_galeri;
+                document.getElementById('edit-galeri-deskripsi').value = d.deskripsi_galeri || '';
+                document.getElementById('edit-galeri-preview').src = d.foto_galeri;
+
+                showModal('edit-galeri');
+            });
+    }
+
+let chartStatus = null;
+let chartKategoriKegiatan = null;
+let chartKategoriArtikel = null;
+
+function initCharts() {
+    // Ambil canvas elements
+    const ctxStatus = document.getElementById('chartStatusKegiatan');
+    const ctxKegiatan = document.getElementById('chartKategoriKegiatan');
+    const ctxArtikel = document.getElementById('chartKategoriArtikel');
+
+    if (!ctxStatus || !ctxKegiatan || !ctxArtikel) return;
+
+    // Destroy existing charts
+    if (chartStatus) chartStatus.destroy();
+    if (chartKategoriKegiatan) chartKategoriKegiatan.destroy();
+    if (chartKategoriArtikel) chartKategoriArtikel.destroy();
+
+    // Shared options untuk semua chart
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: 1,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'bottom',
+                labels: {
+                    boxWidth: 12,
+                    padding: 10,
+                    font: {
+                        size: 11
+                    }
+                }
+            }
+        }
+    };
+
+    // Chart 1: Status Kegiatan
+    chartStatus = new Chart(ctxStatus, {
+        type: 'pie',
+        data: {
+            labels: ['Selesai', 'Berlangsung', 'Mendatang'],
+            datasets: [{
+                data: [
+                    <?= $statusData['selesai'] ?>,
+                    <?= $statusData['berlangsung'] ?>,
+                    <?= $statusData['mendatang'] ?>
+                ],
+                backgroundColor: ['#9e9e9e', '#4caf50', '#2196f3'],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: chartOptions
+    });
+
+    // Chart 2: Kategori Kegiatan
+    chartKategoriKegiatan = new Chart(ctxKegiatan, {
+        type: 'pie',
+        data: {
+            labels: <?= json_encode(array_keys($kategoriKegiatanData)) ?>,
+            datasets: [{
+                data: <?= json_encode(array_values($kategoriKegiatanData)) ?>,
+                backgroundColor: ['#4caf50', '#2196f3', '#ffc107', '#9c27b0'],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: chartOptions
+    });
+
+    // Chart 3: Kategori Artikel
+    chartKategoriArtikel = new Chart(ctxArtikel, {
+        type: 'pie',
+        data: {
+            labels: <?= json_encode(array_keys($kategoriArtikelData)) ?>,
+            datasets: [{
+                data: <?= json_encode(array_values($kategoriArtikelData)) ?>,
+                backgroundColor: ['#2196f3', '#ff9800', '#4caf50', '#9c27b0'],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: chartOptions
+    });
+
+    console.log('✅ Charts initialized successfully');
+}
+
+// Auto load saat dashboard aktif
+document.addEventListener('DOMContentLoaded', function () {
+    const tab = document.getElementById('tab-statistik');
+    if (tab && tab.classList.contains('active')) {
+        setTimeout(initCharts, 100);
+    }
+});
     </script>
 </body>
 </html>

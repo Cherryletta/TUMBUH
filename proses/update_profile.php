@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/config.php';
 
 // Cek apakah user sudah login
 if (!isset($_SESSION['user_id'])) {
@@ -14,13 +14,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $email    = clean($_POST['email_user']);
     $telepon  = clean($_POST['telepon_user']);
     $alamat   = clean($_POST['alamat_user']);
-    $bidang   = clean($_POST['bidang_user']);
     $motivasi = clean($_POST['motivasi_user']);
 
     // Validasi
     $errors = [];
 
-    if (empty($nama) || empty($email) || empty($telepon) || empty($bidang)) {
+    if (empty($nama) || empty($email) || empty($telepon)) {
         $errors[] = "Semua field wajib harus diisi!";
     }
 
@@ -47,7 +46,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     email_user    = '$email',
                     telepon_user  = '$telepon',
                     alamat_user   = '$alamat',
-                    bidang_user   = '$bidang',
                     motivasi_user = '$motivasi'
                   WHERE id_user = $user_id";
 

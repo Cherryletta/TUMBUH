@@ -96,13 +96,15 @@ $total_riwayat = mysqli_num_rows($query_riwayat);
                 <?php
                 // Icon dan warna berdasarkan jenis
                 $jenis_config = [
-                    'Penanaman' => ['icon' => '🌱', 'color' => 'penanaman'],
-                    'Edukasi' => ['icon' => '📚', 'color' => 'edukasi'],
-                    'Kolaborasi' => ['icon' => '🤝', 'color' => 'kolaborasi'],
-                    'Kampanye' => ['icon' => '📢', 'color' => 'kampanye'],
-                    'Lainnya' => ['icon' => '📦', 'color' => 'lainnya']
+                    'penanaman' => ['icon' => '🌱', 'color' => 'penanaman'],
+                    'edukasi' => ['icon' => '📚', 'color' => 'edukasi'],
+                    'kolaborasi' => ['icon' => '🤝', 'color' => 'kolaborasi'],
+                    'kampanye' => ['icon' => '📢', 'color' => 'kampanye'],
+                    'lainnya' => ['icon' => '📦', 'color' => 'lainnya']
                 ];
-                $config = $jenis_config[$row['jenis_kegiatan']] ?? ['icon' => '📦', 'color' => 'lainnya'];
+                $key = strtolower(trim($row['jenis_kegiatan']));
+                $config = $jenis_config[$key] ?? $jenis_config['lainnya'];
+
 
                 // Format tanggal
                 $tgl_daftar = date('d M Y, H:i', strtotime($row['tanggal_daftar']));
@@ -207,7 +209,7 @@ $total_riwayat = mysqli_num_rows($query_riwayat);
 
     <!-- Back to Profile Button -->
     <div class="back-to-profile">
-        <a href="profil.php" class="btn-back">
+        <a href="dashboard.php" class="btn-back">
             <span>←</span>
             <span>Kembali ke Profil</span>
         </a>

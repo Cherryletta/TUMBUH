@@ -2,9 +2,10 @@
 
 <div class="container">
 <h2 class="title-underline">Tim Kami</h2>
-<p class="subtitle" style="margin-bottom: 2rem; font-size: 1.1rem; color: #666;">
-    Kenalan dengan orang-orang hebat di balik TUMBUH yang berdedikasi untuk mewujudkan Indonesia yang lebih hijau! 🌱
-</p>
+<div class="intro-text">
+    Kenalan dengan orang-orang hebat di balik TUMBUH yang berdedikasi<br>
+    untuk mewujudkan Indonesia yang lebih hijau! 🌱
+</div>
 
 <div class="tim-grid">
     <?php foreach ($tim_list as $anggota): ?>

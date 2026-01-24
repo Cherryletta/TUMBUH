@@ -12,46 +12,42 @@
     <?php unset($_SESSION['errors']); ?>
 <?php endif; ?>
 
-<form method="POST" action="auth/register_process.php">
+<form method="POST" action="proses/register.php">
     <div class="form-group">
         <label>Nama Lengkap *</label>
-        <input type="text" name="nama" required>
+        <input type="text" name="nama_user" required>
     </div>
+
     <div class="form-group">
         <label>Email *</label>
-        <input type="email" name="email" required>
+        <input type="email" name="email_user" required>
     </div>
+
     <div class="form-group">
         <label>Password *</label>
-        <input type="password" name="password" required minlength="6">
-        <small>Minimal 6 karakter</small>
+        <input type="password" name="password_user" required minlength="6">
     </div>
+
     <div class="form-group">
         <label>Konfirmasi Password *</label>
         <input type="password" name="confirm_password" required>
     </div>
+
     <div class="form-group">
         <label>No. Telepon *</label>
-        <input type="tel" name="telepon" required>
+        <input type="tel" name="telepon_user" required>
     </div>
+
     <div class="form-group">
         <label>Alamat</label>
-        <textarea name="alamat" rows="3"></textarea>
+        <textarea name="alamat_user"></textarea>
     </div>
-    <div class="form-group">
-        <label>Bidang Minat *</label>
-        <select name="bidang" required>
-            <option value="">-- Pilih Bidang --</option>
-            <option value="penanaman">Penanaman Pohon</option>
-            <option value="edukasi">Edukasi Lingkungan</option>
-            <option value="publikasi">Publikasi & Media</option>
-            <option value="dokumentasi">Dokumentasi</option>
-        </select>
-    </div>
+
     <div class="form-group">
         <label>Motivasi Bergabung</label>
-        <textarea name="motivasi" rows="4"></textarea>
+        <textarea name="motivasi_user"></textarea>
     </div>
+
     <button type="submit">Daftar Sekarang</button>
 </form>
 

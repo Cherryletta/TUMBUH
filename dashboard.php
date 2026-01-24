@@ -9,8 +9,6 @@ if (! $is_logged_in) {
 
 // ========== HITUNG STATISTIK RELAWAN BERDASARKAN JENIS KEGIATAN ==========
 $user_id = $current_user['id_user'];
-
-// Query untuk menghitung berdasarkan jenis kegiatan
 $query_stats = mysqli_query($conn, "
     SELECT 
         k.jenis_kegiatan,
@@ -20,22 +18,19 @@ $query_stats = mysqli_query($conn, "
     WHERE p.id_user = $user_id
     GROUP BY k.jenis_kegiatan
 ");
-
-// Inisialisasi array statistik
 $stats = [
-    'Penanaman' => 0,
-    'Edukasi' => 0,
-    'Kolaborasi' => 0,
-    'Kampanye' => 0,
-    'Lainnya' => 0
+    'penanaman' => 0,
+    'edukasi' => 0,
+    'kolaborasi' => 0,
+    'kampanye' => 0,
+    'lainnya' => 0
 ];
 
-// Isi data dari database
 while ($row = mysqli_fetch_assoc($query_stats)) {
-    $stats[$row['jenis_kegiatan']] = $row['total'];
+    $key = strtolower($row['jenis_kegiatan']);
+    $stats[$key] = $row['total'];
 }
 
-// Hitung total kegiatan
 $total_kegiatan = array_sum($stats);
 
 ?>
@@ -84,21 +79,12 @@ $total_kegiatan = array_sum($stats);
                 <div class="profile-header-info">
                     <h4><?php echo $current_user['nama_user']; ?></h4>
                     <p class="user-email"><?php echo $current_user['email_user']; ?></p>
-                    <span class="bidang-badge">
-                        <?php 
-                        $bidang_labels = [
-                            'penanaman' => '🌱 Penanaman Pohon', 
-                            'edukasi' => '📚 Edukasi Lingkungan', 
-                            'publikasi' => '📢 Publikasi & Media', 
-                            'dokumentasi' => '📷 Dokumentasi'
-                        ];
-                        echo $bidang_labels[$current_user['bidang_user']] ?? '🌿 Relawan';
-                        ?>
                     </span>
                 </div>
-                <button class="btn-edit-profile" onclick="toggleEditMode()" id="btn-edit-trigger">
-                    ✏️ Edit Profil
-                </button>
+                <div class="profile-action-buttons">
+                    <button class="btn-edit-profile" onclick="toggleEditMode()" id="btn-edit-trigger">Edit Profil</button>
+                    <button class="btn-password" onclick="togglePasswordMode()" id="btn-password-trigger" style="background:#2e7d32;">Edit Password</button>
+                </div>             
             </div>
 
             <!-- Profile Info Section (VIEW MODE) -->
@@ -127,21 +113,6 @@ $total_kegiatan = array_sum($stats);
                     </div>
 
                     <div class="info-item">
-                        <label class="info-label">🎯 Bidang Minat</label>
-                        <div class="info-value">
-                            <?php 
-                            $bidang_labels_simple = [
-                                'penanaman' => 'Penanaman Pohon', 
-                                'edukasi' => 'Edukasi Lingkungan', 
-                                'publikasi' => 'Publikasi & Media', 
-                                'dokumentasi' => 'Dokumentasi'
-                            ];
-                            echo $bidang_labels_simple[$current_user['bidang_user']] ?? 'Relawan Umum';
-                            ?>
-                        </div>
-                    </div>
-
-                    <div class="info-item">
                         <label class="info-label">💡 Motivasi</label>
                         <div class="info-value"><?php echo $current_user['motivasi_user'] ?: '<em>Belum diisi</em>'; ?></div>
                     </div>
@@ -149,7 +120,7 @@ $total_kegiatan = array_sum($stats);
             </div>
 
             <!-- Edit Form Section (EDIT MODE) -->
-            <form method="POST" action="auth/update_profile.php" id="profile-edit" class="profile-edit-form" style="display:none;">
+            <form method="POST" action="proses/update_profile.php" id="profile-edit" class="profile-edit-form" style="display:none;">
                 <h3>✏️ Edit Profil</h3>
 
                 <div class="form-row-full">
@@ -173,16 +144,6 @@ $total_kegiatan = array_sum($stats);
                 </div>
 
                 <div class="form-row-full">
-                    <label for="bidang">🎯 Bidang Minat</label>
-                    <select id="bidang" name="bidang" required>
-                        <option value="penanaman" <?php echo $current_user['bidang_user'] == 'penanaman' ? 'selected' : ''; ?>>🌱 Penanaman Pohon</option>
-                        <option value="edukasi" <?php echo $current_user['bidang_user'] == 'edukasi' ? 'selected' : ''; ?>>📚 Edukasi Lingkungan</option>
-                        <option value="publikasi" <?php echo $current_user['bidang_user'] == 'publikasi' ? 'selected' : ''; ?>>📢 Publikasi & Media</option>
-                        <option value="dokumentasi" <?php echo $current_user['bidang_user'] == 'dokumentasi' ? 'selected' : ''; ?>>📷 Dokumentasi</option>
-                    </select>
-                </div>
-
-                <div class="form-row-full">
                     <label for="motivasi">💡 Motivasi</label>
                     <textarea id="motivasi" name="motivasi" rows="3" placeholder="Bagikan motivasi Anda bergabung dengan TUMBUH..."><?php echo $current_user['motivasi_user']; ?></textarea>
                 </div>
@@ -192,8 +153,35 @@ $total_kegiatan = array_sum($stats);
                     <button type="button" class="btn btn-secondary" onclick="toggleEditMode()">❌ Batal</button>
                 </div>
             </form>
-        </div>
 
+            <form method="POST" action="proses/update_password.php" 
+                id="password-edit" class="profile-edit-form" style="display:none;">
+
+                <h3>🔒 Ubah Password</h3>
+
+                <div class="form-row-full">
+                    <label>Password Lama</label>
+                    <input type="password" name="password_lama" required>
+                </div>
+
+                <div class="form-row-full">
+                    <label>Password Baru</label>
+                    <input type="password" name="password_baru" required minlength="6">
+                </div>
+
+                <div class="form-row-full">
+                    <label>Konfirmasi Password Baru</label>
+                    <input type="password" name="konfirmasi_password" required>
+                </div>
+
+                <div class="form-actions-horizontal">
+                    <button type="submit" class="btn btn-primary">💾 Simpan Password</button>
+                    <button type="button" class="btn btn-secondary" onclick="togglePasswordMode()">❌ Batal</button>
+                </div>
+            </form>
+
+        </div>
+        
         <!-- Stats Sidebar -->
         <div class="profile-stats-sidebar">
             <h3>📊 Statistik Kontribusi</h3>
@@ -211,7 +199,7 @@ $total_kegiatan = array_sum($stats);
             <div class="stat-box-modern stat-penanaman">
                 <div class="stat-icon-modern">🌱</div>
                 <div class="stat-content-modern">
-                    <div class="stat-number-modern"><?php echo $stats['Penanaman']; ?></div>
+                    <div class="stat-number-modern"><?php echo $stats['penanaman']; ?></div>
                     <div class="stat-label-modern">Penanaman</div>
                 </div>
             </div>
@@ -219,7 +207,7 @@ $total_kegiatan = array_sum($stats);
             <div class="stat-box-modern stat-edukasi">
                 <div class="stat-icon-modern">📚</div>
                 <div class="stat-content-modern">
-                    <div class="stat-number-modern"><?php echo $stats['Edukasi']; ?></div>
+                    <div class="stat-number-modern"><?php echo $stats['edukasi']; ?></div>
                     <div class="stat-label-modern">Edukasi</div>
                 </div>
             </div>
@@ -227,7 +215,7 @@ $total_kegiatan = array_sum($stats);
             <div class="stat-box-modern stat-kolaborasi">
                 <div class="stat-icon-modern">🤝</div>
                 <div class="stat-content-modern">
-                    <div class="stat-number-modern"><?php echo $stats['Kolaborasi']; ?></div>
+                    <div class="stat-number-modern"><?php echo $stats['kolaborasi']; ?></div>
                     <div class="stat-label-modern">Kolaborasi</div>
                 </div>
             </div>
@@ -235,7 +223,7 @@ $total_kegiatan = array_sum($stats);
             <div class="stat-box-modern stat-kampanye">
                 <div class="stat-icon-modern">📢</div>
                 <div class="stat-content-modern">
-                    <div class="stat-number-modern"><?php echo $stats['Kampanye']; ?></div>
+                    <div class="stat-number-modern"><?php echo $stats['kampanye']; ?></div>
                     <div class="stat-label-modern">Kampanye</div>
                 </div>
             </div>
@@ -269,6 +257,24 @@ function toggleEditMode() {
         profileEdit.style.display = 'none';
         btnEdit.textContent = '✏️ Edit Profil';
         btnEdit.style.background = '#ff9800';
+    }
+}
+
+function togglePasswordMode() {
+    const profileView = document.getElementById('profile-view');
+    const profileEdit = document.getElementById('profile-edit');
+    const passwordEdit = document.getElementById('password-edit');
+
+    // Matikan mode lain
+    profileView.style.display = 'none';
+    profileEdit.style.display = 'none';
+
+    // Toggle password
+    if (passwordEdit.style.display === 'none') {
+        passwordEdit.style.display = 'block';
+    } else {
+        passwordEdit.style.display = 'none';
+        profileView.style.display = 'block';
     }
 }
 </script>

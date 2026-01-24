@@ -183,7 +183,6 @@ $related_kegiatan = mysqli_fetch_all($result, MYSQLI_ASSOC);
                     </h2>
                     <ul class="benefits-list">
                         <?php 
-                        // Default manfaat jika tidak ada di database
                         $manfaat_default = [
                             'Berkontribusi langsung untuk kelestarian lingkungan',
                             'Bertemu dan networking dengan relawan lain yang peduli lingkungan',
@@ -192,7 +191,6 @@ $related_kegiatan = mysqli_fetch_all($result, MYSQLI_ASSOC);
                             'Konsumsi dan dokumentasi kegiatan'
                         ];
                         
-                        // Ambil manfaat dari database atau gunakan default
                         if (!empty($kegiatan['manfaat_kegiatan'])) {
                             $manfaat_list = explode('|', $kegiatan['manfaat_kegiatan']);
                         } else {
@@ -221,7 +219,6 @@ $related_kegiatan = mysqli_fetch_all($result, MYSQLI_ASSOC);
                     </h2>
                     <ul class="requirements-list">
                         <?php 
-                        // Default persyaratan jika tidak ada di database
                         $persyaratan_default = [
                             'Usia minimal 17 tahun',
                             'Sehat jasmani dan rohani',
@@ -229,7 +226,6 @@ $related_kegiatan = mysqli_fetch_all($result, MYSQLI_ASSOC);
                             'Membawa perlengkapan pribadi (topi, sarung tangan, dll)'
                         ];
                         
-                        // Ambil persyaratan dari database atau gunakan default
                         if (!empty($kegiatan['syarat_kegiatan'])) {
                             $persyaratan_list = explode('|', $kegiatan['syarat_kegiatan']);
                         } else {
@@ -269,7 +265,7 @@ $related_kegiatan = mysqli_fetch_all($result, MYSQLI_ASSOC);
                     <!-- Stats -->
                     <div class="sidebar-stats">
                         <div class="stat-box">
-                            <div class="stat-number"><?php echo $sisa_kuota; ?></div>
+                            <div class="stat-number" id="sisa-kuota-display"><?php echo $sisa_kuota; ?></div>
                             <div class="stat-label">Kuota Tersisa</div>
                             <div class="quota-progress">
                                 <?php 
@@ -278,10 +274,10 @@ $related_kegiatan = mysqli_fetch_all($result, MYSQLI_ASSOC);
                                     : 0;
                                 ?>
                                 <div class="progress-bar-container">
-                                    <div class="progress-bar-fill" style="width: <?php echo min($progress_percentage, 100); ?>%"></div>
+                                    <div class="progress-bar-fill" id="quota-progress-bar" style="width: <?php echo min($progress_percentage, 100); ?>%"></div>
                                 </div>
-                                <div class="quota-text">
-                                    <?php echo $kegiatan['jumlah_pendaftar']; ?> dari <?php echo $kegiatan['kuota_relawan']; ?> peserta terdaftar
+                                <div class="quota-text" id="quota-text">
+                                    <span id="jumlah-pendaftar-display"><?php echo $kegiatan['jumlah_pendaftar']; ?></span> dari <?php echo $kegiatan['kuota_relawan']; ?> peserta terdaftar
                                 </div>
                             </div>
                         </div>
@@ -325,12 +321,12 @@ $related_kegiatan = mysqli_fetch_all($result, MYSQLI_ASSOC);
                                 <button onclick="showModal('login')" class="btn-register-large">
                                     <i class="fas fa-sign-in-alt"></i>
                                     <span>Login untuk Daftar</span>
-                            </button>
+                                </button>
                             <?php else: ?>
-                                <a href="gabung.php?kegiatan_id=<?php echo $id; ?>" class="btn-register-large">
+                                <button onclick="openDaftarModal()" class="btn-register-large" id="btn-daftar-kegiatan">
                                     <i class="fas fa-hand-paper"></i>
                                     <span>Daftar Sekarang</span>
-                                </a>
+                                </button>
                             <?php endif; ?>
                         <?php endif; ?>
                         
@@ -389,7 +385,170 @@ $related_kegiatan = mysqli_fetch_all($result, MYSQLI_ASSOC);
     </div>
 </div>
 
+<!-- Modal Pendaftaran -->
+<div class="modal-daftar-overlay" id="modalDaftar">
+    <div class="modal-daftar-content">
+        <div class="modal-daftar-header">
+            <button class="modal-daftar-close" onclick="closeDaftarModal()">×</button>
+            <div class="modal-daftar-icon">✋</div>
+            <h2>Konfirmasi Pendaftaran</h2>
+            <p class="modal-daftar-subtitle">Pastikan data Anda sudah benar</p>
+        </div>
+        
+        <div class="modal-daftar-body">
+            <div class="kegiatan-info-box-modal">
+                <h3><?php echo htmlspecialchars($kegiatan['judul_kegiatan']); ?></h3>
+                <div class="kegiatan-info-item">
+                    <i class="fas fa-calendar"></i>
+                    <span><?php echo date('d F Y', strtotime($kegiatan['tanggal_kegiatan'])); ?></span>
+                </div>
+                <div class="kegiatan-info-item">
+                    <i class="fas fa-clock"></i>
+                    <span><?php echo htmlspecialchars($kegiatan['waktu_kegiatan'] ?? 'Akan diumumkan'); ?></span>
+                </div>
+                <div class="kegiatan-info-item">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span><?php echo htmlspecialchars($kegiatan['lokasi_kegiatan']); ?></span>
+                </div>
+            </div>
+            
+            <form id="formDaftarKegiatan">
+                <input type="hidden" name="kegiatan_id" value="<?php echo $id; ?>">
+                
+                <div class="form-group-modal">
+                    <label for="catatan">Catatan (Opsional)</label>
+                    <textarea 
+                        id="catatan" 
+                        name="catatan" 
+                        placeholder="Tuliskan catatan atau pertanyaan Anda di sini..."
+                    ></textarea>
+                </div>
+                
+                <div class="modal-daftar-actions">
+                    <button type="button" class="btn-modal-cancel" onclick="closeDaftarModal()">
+                        <i class="fas fa-times"></i>
+                        Batal
+                    </button>
+                    <button type="submit" class="btn-modal-submit" id="btnSubmitDaftar">
+                        <i class="fas fa-check"></i>
+                        Ya, Daftar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Success -->
+<div class="modal-daftar-overlay" id="modalSuccess">
+    <div class="modal-daftar-content">
+        <div class="modal-daftar-body modal-success-content">
+            <div class="modal-success-icon">
+                ✓
+            </div>
+            <h2 class="modal-success-title">Pendaftaran Berhasil!</h2>
+            <p class="modal-success-message">
+                Selamat! Anda telah berhasil terdaftar dalam kegiatan ini.
+            </p>
+            
+            <div class="wa-group-box">
+                <h4>
+                    <i class="fab fa-whatsapp"></i>
+                    Bergabung dengan Grup WhatsApp
+                </h4>
+                <p style="margin: 0 0 1rem; font-size: 0.9rem;">
+                    Dapatkan informasi terkini dan koordinasi kegiatan
+                </p>
+                <a href="#" id="linkWAGroup" target="_blank" class="btn-wa-group">
+                    <i class="fab fa-whatsapp"></i>
+                    Gabung Grup WA
+                </a>
+            </div>
+            
+            <button onclick="closeSuccessModal()" class="btn-close-success">
+                Mengerti
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
+const kegiatanId = <?php echo $id; ?>;
+
+function openDaftarModal() {
+    document.getElementById('modalDaftar').classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeDaftarModal() {
+    document.getElementById('modalDaftar').classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+function closeSuccessModal() {
+    document.getElementById('modalSuccess').classList.remove('active');
+    document.body.style.overflow = '';
+    location.reload();
+}
+
+// Handle form submission
+document.getElementById('formDaftarKegiatan').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const btnSubmit = document.getElementById('btnSubmitDaftar');
+    const originalText = btnSubmit.innerHTML;
+
+    btnSubmit.disabled = true;
+    btnSubmit.classList.add('btn-loading');
+    btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mendaftar...';
+
+    // 🔥 FIX: kirim data manual (jangan pakai FormData(this))
+    const formData = new FormData();
+    formData.append('kegiatan_id', kegiatanId);
+    formData.append('catatan', document.getElementById('catatan').value);
+
+    fetch('proses/proses_daftar_kegiatan.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            closeDaftarModal();
+            document.getElementById('linkWAGroup').href = data.data.wa_group;
+            document.getElementById('modalSuccess').classList.add('active');
+            updateUIAfterRegistration(data.data);
+        } else {
+            alert(data.message);
+            btnSubmit.disabled = false;
+            btnSubmit.classList.remove('btn-loading');
+            btnSubmit.innerHTML = originalText;
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert('Terjadi kesalahan. Silakan coba lagi.');
+        btnSubmit.disabled = false;
+        btnSubmit.classList.remove('btn-loading');
+        btnSubmit.innerHTML = originalText;
+    });
+});
+
+function updateUIAfterRegistration(data) {
+    // Update sisa kuota
+    const sisaKuota = data.sisa_kuota;
+    document.getElementById('sisa-kuota-display').textContent = sisaKuota;
+    
+    // Update jumlah pendaftar
+    const currentCount = parseInt(document.getElementById('jumlah-pendaftar-display').textContent);
+    document.getElementById('jumlah-pendaftar-display').textContent = currentCount + 1;
+    
+    // Update progress bar
+    const totalKuota = <?php echo $kegiatan['kuota_relawan']; ?>;
+    const newPercentage = ((currentCount + 1) / totalKuota) * 100;
+    document.getElementById('quota-progress-bar').style.width = Math.min(newPercentage, 100) + '%';
+}
+
 function shareActivity() {
     const url = window.location.href;
     const title = "<?php echo addslashes($kegiatan['judul_kegiatan']); ?>";
@@ -402,12 +561,24 @@ function shareActivity() {
             url: url
         }).catch(err => console.log('Error sharing:', err));
     } else {
-        // Fallback: copy to clipboard
         navigator.clipboard.writeText(url).then(() => {
             alert('Link kegiatan telah disalin! Silakan bagikan kepada teman-teman Anda.');
         });
     }
 }
+
+// Close modal when clicking outside
+document.getElementById('modalDaftar').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeDaftarModal();
+    }
+});
+
+document.getElementById('modalSuccess').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeSuccessModal();
+    }
+});
 </script>
 
 <?php include __DIR__ . '/inc/footer.php'; ?>

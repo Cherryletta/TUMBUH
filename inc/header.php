@@ -1,14 +1,7 @@
 <?php
-require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../proses/config.php';
 
 /* ================= DATA ================= */
-
-// Statistik
-$stat_query = mysqli_query($conn, "SELECT * FROM statistik");
-$statistik = [];
-while ($row = mysqli_fetch_assoc($stat_query)) {
-    $statistik[$row['nama_stat']] = $row['nilai'];
-}
 
 // Kegiatan
 $kegiatan_query = mysqli_query($conn, "SELECT * FROM kegiatan ORDER BY created_at_kegiatan DESC");
@@ -52,8 +45,15 @@ $tentang_pages = ['tentang.php', 'visi-misi.php', 'tim.php', 'kontak.php'];
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TUMBUH - Tanam Untuk Bumi Hijau</title>
-    <link rel="icon" type="image/png" href="assets/img/icon_tumbuh.png">
+    <link rel="icon" type="image/png" href="assets/img/home/icon_tumbuh.png">
     <link rel="stylesheet" href="assets/style.css">
+    <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+    />
 </head>
 
 <body>
@@ -65,7 +65,7 @@ $tentang_pages = ['tentang.php', 'visi-misi.php', 'tim.php', 'kontak.php'];
 <div class="mobile-sidebar-menu" id="mobileSidebarMenu">
     <div class="mobile-menu-header">
         <div class="mobile-menu-logo">
-            <a href="index.php"><img src="assets/img/logo_tumbuh.png" alt="TUMBUH Logo"></a>
+            <a href="index.php"><img src="assets/img/home/logo_tumbuh.png" alt="TUMBUH Logo"></a>
         </div>
         <button class="mobile-menu-close" id="mobileMenuClose">&times;</button>
     </div>
@@ -105,7 +105,7 @@ $tentang_pages = ['tentang.php', 'visi-misi.php', 'tim.php', 'kontak.php'];
             <li>
                 <a href="artikel.php" class="<?php echo ($current_page == 'artikel.php') ? 'active' : ''; ?>">
                     <span class="menu-icon">📰</span>
-                    <span>artikel</span>
+                    <span>Artikel</span>
                 </a>
             </li>
             
@@ -134,7 +134,7 @@ $tentang_pages = ['tentang.php', 'visi-misi.php', 'tim.php', 'kontak.php'];
                 <?php endif; ?>
                 
                 <a href="dashboard.php" class="mobile-auth-btn">Dashboard</a>
-                <a href="auth/logout.php" class="mobile-auth-btn logout-btn">Keluar</a>
+                <a href="proses/logout.php" class="mobile-auth-btn logout-btn">Keluar</a>
             <?php else: ?>
                 <button onclick="showModal('login')" class="mobile-auth-btn">Masuk</button>
                 <button onclick="window.location.href='gabung.php'" class="mobile-auth-btn daftar-btn">Daftar</button>
@@ -154,7 +154,7 @@ $tentang_pages = ['tentang.php', 'visi-misi.php', 'tim.php', 'kontak.php'];
 
         <!-- LOGO -->
         <div class="nav-logo">
-            <img src="assets/img/logo_tumbuh.png" alt="TUMBUH Logo">
+            <a href="index.php"><img src="assets/img/home/logo_tumbuh.png" alt="TUMBUH Logo"></a>
         </div>
 
         <!-- DESKTOP MENU -->
@@ -167,7 +167,6 @@ $tentang_pages = ['tentang.php', 'visi-misi.php', 'tim.php', 'kontak.php'];
                 </a>
                 <div class="nav-dropdown-content">
                     <a href="tentang.php">Siapa Kami</a>
-                    <a href="visi-misi.php">Visi & Misi</a>
                     <a href="tim.php">Tim Kami</a>
                     <a href="kontak.php">Kontak</a>
                 </div>
@@ -191,7 +190,7 @@ $tentang_pages = ['tentang.php', 'visi-misi.php', 'tim.php', 'kontak.php'];
                     <a href="admin.php" style="background: #ff6b00; border-color: #ff6b00; font-weight: 600;">⚙️ Admin Panel</a>
                 <?php endif; ?>
                 <a href="dashboard.php">Dashboard</a>
-                <a href="auth/logout.php">Keluar</a>
+                <a href="proses/logout.php">Keluar</a>
             <?php else: ?>
                 <button onclick="showModal('login')">Masuk</button>
                 <button onclick="window.location.href='gabung.php'" style="background:#ff9800;border-color:#ff9800;">Daftar</button>
