@@ -20,9 +20,9 @@ $result_artikel = mysqli_stmt_get_result($stmt);
 ?>
 
 <!-- HEADER ARTIKEL -->
-<div class="container" style="padding: 2rem 1rem 1rem 1rem;">
+<div class="container">
     <h2 class="title-underline">Artikel TUMBUH</h2>
-    <div class="intro-text">Informasi, tips, dan cerita inspiratif seputar lingkungan dan konservasi</div>
+    <div class="intro-text">Kumpulan artikel yang berisi edukasi, pandangan, tips, dan cerita seputar kepedulian serta aksi lingkungan.</div>
 </div>
 
 <!-- CONTAINER ARTIKEL -->

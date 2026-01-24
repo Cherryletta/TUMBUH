@@ -19,7 +19,6 @@ if (!$query || mysqli_num_rows($query) == 0) {
 
 $pesan = mysqli_fetch_assoc($query);
 
-// Format tanggal
 $pesan['tanggal_pesan_formatted'] = date('d F Y, H:i', strtotime($pesan['tanggal_pesan']));
 
 echo json_encode($pesan);

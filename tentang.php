@@ -1,10 +1,10 @@
 <?php include __DIR__ . '/inc/header.php'; ?>
 
 <div class="container">
-<h2 class="title-underline">Siapa Kami</h2>
-
+    <h2 class="title-underline">Siapa Kami</h2>
+    <div class="intro-text">Latar belakang, tujuan, dan profil organisasi TUMBUH sebagai komunitas lingkungan.</div>
+    
 <div class="container tentang-wrapper">
-
     <!-- KONTEN KIRI -->
     <div class="tentang-content">
 

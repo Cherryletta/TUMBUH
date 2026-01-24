@@ -17,7 +17,6 @@ if ($password_baru !== $konfirmasi) {
     exit;
 }
 
-// Ambil password lama dari DB
 $sql = "SELECT password_user FROM users WHERE id_user = ?";
 $stmt = mysqli_prepare($conn, $sql);
 mysqli_stmt_bind_param($stmt, "i", $user_id);
@@ -25,17 +24,14 @@ mysqli_stmt_execute($stmt);
 $result = mysqli_stmt_get_result($stmt);
 $user = mysqli_fetch_assoc($result);
 
-// Cek password lama
 if (!password_verify($password_lama, $user['password_user'])) {
     $_SESSION['profile_errors'][] = 'Password lama salah';
     header('Location: ../dashboard.php');
     exit;
 }
 
-// Hash password baru
 $password_hash = password_hash($password_baru, PASSWORD_DEFAULT);
 
-// Update password
 $sql = "UPDATE users SET password_user = ? WHERE id_user = ?";
 $stmt = mysqli_prepare($conn, $sql);
 mysqli_stmt_bind_param($stmt, "si", $password_hash, $user_id);

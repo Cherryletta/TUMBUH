@@ -1,15 +1,12 @@
 <?php 
 include __DIR__ . '/inc/header.php'; 
 
-// Get kegiatan ID from URL
 $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-
 if ($id === 0) {
     header('Location: kegiatan.php');
     exit;
 }
 
-// Fetch kegiatan detail dengan JOIN ke detail_kegiatan dan hitung jumlah pendaftar
 $sql = "
     SELECT 
         k.*,
@@ -35,10 +32,7 @@ if (!$kegiatan) {
     exit;
 }
 
-// Hitung sisa kuota
 $sisa_kuota = $kegiatan['kuota_relawan'] - $kegiatan['jumlah_pendaftar'];
-
-// Check if user is already registered
 $is_registered = false;
 
 if (isset($_SESSION['user_id'])) {
@@ -51,7 +45,6 @@ if (isset($_SESSION['user_id'])) {
     $is_registered = mysqli_num_rows($result) > 0;
 }
 
-// Fetch related activities (same category, not finished)
 $sql = "
     SELECT * FROM kegiatan 
     WHERE id_kegiatan != ? 
@@ -202,7 +195,7 @@ $related_kegiatan = mysqli_fetch_all($result, MYSQLI_ASSOC);
                         ?>
                         <li>
                             <i class="fas fa-check-circle"></i>
-                            <span>🍀༄ <?php echo htmlspecialchars(trim($manfaat)); ?></span>
+                            <span><?php echo htmlspecialchars(trim($manfaat)); ?></span>
                         </li>
                         <?php 
                             endif;
@@ -237,7 +230,7 @@ $related_kegiatan = mysqli_fetch_all($result, MYSQLI_ASSOC);
                         ?>
                         <li>
                             <i class="fas fa-chevron-right"></i>
-                            <span>🍃༄ <?php echo htmlspecialchars(trim($persyaratan)); ?></span>
+                            <span><?php echo htmlspecialchars(trim($persyaratan)); ?></span>
                         </li>
                         <?php 
                             endif;
@@ -567,7 +560,6 @@ function shareActivity() {
     }
 }
 
-// Close modal when clicking outside
 document.getElementById('modalDaftar').addEventListener('click', function(e) {
     if (e.target === this) {
         closeDaftarModal();

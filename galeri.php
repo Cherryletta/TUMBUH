@@ -1,20 +1,18 @@
 <?php include __DIR__ . '/inc/header.php'; ?>
 
 <div class="container">
-    <h2 class="title-underline">Galeri Kegiatan</h2>
-    <div class="intro-text">Saksikan momen-momen indah dari kegiatan TUMBUH</div>
+    <h2 class="title-underline">Galeri Kegiatan TUMBUH</h2>
+    <div class="intro-text">Dokumentasi visual dari berbagai kegiatan dan program lingkungan yang telah dilakukan oleh TUMBUH bersama masyarakat.</div>
 
     <?php
     $kegiatan_query = mysqli_query($conn, "SELECT * FROM kegiatan WHERE status_kegiatan = 'selesai' ORDER BY created_at_kegiatan DESC");
     $kegiatan_list = [];
     
     while ($row = mysqli_fetch_assoc($kegiatan_query)) {
-        // Ambil foto untuk kegiatan ini (limit 3)
         $id_k = $row['id_kegiatan'];
         $foto_query = mysqli_query($conn, "SELECT * FROM galeri WHERE id_kegiatan = $id_k ORDER BY tanggal_upload_galeri ASC LIMIT 3");
         $fotos = mysqli_fetch_all($foto_query, MYSQLI_ASSOC);
         
-        // Jika kurang dari 3 foto, tambahi dengan placeholder
         while (count($fotos) < 3) {
             $fotos[] = ['foto_galeri' => 'assets/img/placeholder-galeri.jpg', 'deskripsi_galeri' => 'Tidak ada foto'];
         }
@@ -23,17 +21,14 @@
         $kegiatan_list[] = $row;
     }
 
-    // Pagination
     $items_per_page = 10;
     $current_page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
     $total_items = count($kegiatan_list);
     $total_pages = ceil($total_items / $items_per_page);
 
-    // Validasi halaman
     if ($current_page < 1) $current_page = 1;
     if ($current_page > $total_pages && $total_pages > 0) $current_page = $total_pages;
 
-    // Hitung offset
     $offset = ($current_page - 1) * $items_per_page;
     $paginated_items = array_slice($kegiatan_list, $offset, $items_per_page);
     ?>

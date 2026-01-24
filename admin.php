@@ -78,7 +78,6 @@ if (isset($_GET['ajax'])) {
     }
 }
 
-// Form submission handling
 $message = '';
 $message_type = '';
 
@@ -219,9 +218,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
     }
 }
 
-// Fetch data
 $users_list = [];
-$result = mysqli_query($conn, "SELECT * FROM users WHERE role_user = 'user' ORDER BY tanggal_daftar_user ASC");
+$result = mysqli_query($conn, "SELECT * FROM users ORDER BY role_user DESC, tanggal_daftar_user ASC");
 while ($row = mysqli_fetch_assoc($result)) $users_list[] = $row;
 
 $kegiatan_list = [];
@@ -240,13 +238,9 @@ while ($row = mysqli_fetch_assoc($result)) $tim_list[] = $row;
 $limit = 9; // 3 x 3
 $page  = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $offset = ($page - 1) * $limit;
-
-// total data
 $total_query = mysqli_query($conn, "SELECT COUNT(*) AS total FROM galeri");
 $total_data  = mysqli_fetch_assoc($total_query)['total'];
 $total_pages = ceil($total_data / $limit);
-
-// data per halaman
 $fotos_list = [];
 $result = mysqli_query($conn, "
     SELECT f.*, k.judul_kegiatan
@@ -284,7 +278,6 @@ $result = mysqli_query($conn, "
 ");
 while ($row = mysqli_fetch_assoc($result)) $pendaftaran_list[] = $row;
 
-// Kegiatan aktif (berlangsung + mendatang)
 $kegiatanAktif = $conn->query("
     SELECT judul_kegiatan, status_kegiatan, tanggal_kegiatan
     FROM kegiatan
@@ -293,7 +286,6 @@ $kegiatanAktif = $conn->query("
     LIMIT 5
 ");
 
-// Pendaftaran terbaru
 $pendaftaranTerbaru = $conn->query("
     SELECT u.nama_user, k.judul_kegiatan, p.tanggal_daftar
     FROM pendaftaran_kegiatan p
@@ -303,7 +295,6 @@ $pendaftaranTerbaru = $conn->query("
     LIMIT 8
 ");
 
-// Chart: status kegiatan
 $statusResult = $conn->query("
     SELECT status_kegiatan, COUNT(*) total
     FROM kegiatan
@@ -315,7 +306,6 @@ while ($r = $statusResult->fetch_assoc()) {
     $statusData[$r['status_kegiatan']] = (int)$r['total'];
 }
 
-// Chart: kategori kegiatan
 $kategoriKegiatanResult = $conn->query("
     SELECT jenis_kegiatan, COUNT(*) total
     FROM kegiatan
@@ -326,7 +316,6 @@ while ($r = $kategoriKegiatanResult->fetch_assoc()) {
     $kategoriKegiatanData[$r['jenis_kegiatan']] = (int)$r['total'];
 }
 
-// Chart: kategori artikel
 $kategoriArtikelResult = $conn->query("
     SELECT kategori_artikel, COUNT(*) total
     FROM artikel
@@ -501,29 +490,34 @@ while ($r = $kategoriArtikelResult->fetch_assoc()) {
                             <span class="admin-list-count">(<?= count($users_list); ?> orang)</span>
                         </h3>
                     </div>                            
-                            <table>
-                                <thead>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>No</th><th>Nama</th><th>Email</th><th>Telepon</th><th>Role</th><th>Tanggal Daftar</th><th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php $no = 1; foreach ($users_list as $user): ?>
                                     <tr>
-                                        <th>No</th><th>Nama</th><th>Email</th><th>Telepon</th><th>Tanggal Daftar</th><th>Aksi</th>
+                                        <td><?php echo $no++; ?></td>
+                                        <td><?php echo $user['nama_user']; ?></td>
+                                        <td><?php echo $user['email_user']; ?></td>
+                                        <td><?php echo $user['telepon_user'] ?: '-'; ?></td>
+                                        <td>
+                                            <span class="status-badge <?php echo $user['role_user'] == 'admin' ? 'status-berlangsung' : 'status-mendatang'; ?>">
+                                                <?php echo $user['role_user'] == 'admin' ? '👑 Admin' : '👤 User'; ?>
+                                            </span>
+                                        </td>
+                                        <td><?php echo date('d/m/Y', strtotime($user['tanggal_daftar_user'])); ?></td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-edit" onclick="editUser(<?php echo $user['id_user']; ?>)">Edit</button>
+                                            <button class="btn btn-sm btn-danger" onclick="deleteUser(<?php echo $user['id_user']; ?>, '<?php echo addslashes($user['nama_user']); ?>')">Hapus</button>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    <?php $no = 1; foreach ($users_list as $user): ?>
-                                        <tr>
-                                            <td><?php echo $no++; ?></td>
-                                            <td><?php echo $user['nama_user']; ?></td>
-                                            <td><?php echo $user['email_user']; ?></td>
-                                            <td><?php echo $user['telepon_user'] ?: '-'; ?></td>
-                                            <td><?php echo date('d/m/Y', strtotime($user['tanggal_daftar_user'])); ?></td>
-                                            <td>
-                                                <button type="button" class="btn btn-sm btn-edit" onclick="editUser(<?php echo $user['id_user']; ?>)">Edit</button>
-                                                <button class="btn btn-sm btn-danger" onclick="deleteUser(<?php echo $user['id_user']; ?>, '<?php echo addslashes($user['nama_user']); ?>')">Hapus</button>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
                     <?php endif; ?>
                 </div>
             </div>
@@ -701,7 +695,6 @@ while ($r = $kategoriArtikelResult->fetch_assoc()) {
                                         </div>
 
                                         <?php
-                                        // Hitung statistik per kegiatan
                                         $terdaftar = 0;
                                         $hadir = 0;
                                         $tidak_hadir = 0;
@@ -768,12 +761,19 @@ while ($r = $kategoriArtikelResult->fetch_assoc()) {
                         </div>                            
                             <table>
                                 <thead>
-                                    <tr><th>No</th><th>Kategori</th><th>Judul</th><th>Tanggal</th><th>Sumber</th><th>Aksi</th></tr>
+                                    <tr><th>No</th><th>Gambar</th><th>Kategori</th><th>Judul</th><th>Tanggal</th><th>Sumber</th><th>Aksi</th></tr>
                                 </thead>
                                 <tbody>
                                     <?php $no = 1; foreach ($artikel_list as $artikel): ?>
                                         <tr>
                                             <td><?php echo $no++; ?></td>
+                                            <td>
+                                                <?php if (!empty($artikel['gambar_artikel'])): ?>
+                                                    <img src="assets/img/artikel/<?php echo htmlspecialchars($artikel['gambar_artikel']); ?>" class="admin-table-photo" alt="Gambar">
+                                                <?php else: ?>
+                                                    <div class="admin-avatar-placeholder">📰</div>
+                                                <?php endif; ?>
+                                            </td>
                                             <td>
                                                 <?php 
                                                 $kategori_labels = ['edukasi' => 'Edukasi', 'pandangan' => 'Pandangan', 'tips' => 'Tips', 'cerita' => 'Cerita'];
@@ -1022,6 +1022,13 @@ while ($r = $kategoriArtikelResult->fetch_assoc()) {
                 <div class="form-group"><label>Email *</label><input type="email" name="email_user" id="edit-email" required></div>
                 <div class="form-group"><label>Telepon</label><input type="tel" name="telepon_user" id="edit-telepon"></div>
                 <div class="form-group"><label>Alamat</label><textarea name="alamat_user" id="edit-alamat" rows="3"></textarea></div>
+                <div class="form-group">
+                    <label>Role *</label>
+                    <select name="role_user" id="edit-role" required>
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
                 <button type="submit" class="btn btn-success">💾 Simpan Perubahan</button>
                 <button type="button" class="btn" onclick="closeModal('edit-user')" style="background: #666; color: white;">✖️ Batal</button>
             </form>
@@ -1441,6 +1448,7 @@ while ($r = $kategoriArtikelResult->fetch_assoc()) {
             document.getElementById('edit-email').value = d.email_user;
             document.getElementById('edit-telepon').value = d.telepon_user || '';
             document.getElementById('edit-alamat').value = d.alamat_user || '';
+            document.getElementById('edit-role').value = d.role_user || 'user';
             showModal('edit-user');
         });
     }
@@ -1633,19 +1641,16 @@ let chartKategoriKegiatan = null;
 let chartKategoriArtikel = null;
 
 function initCharts() {
-    // Ambil canvas elements
     const ctxStatus = document.getElementById('chartStatusKegiatan');
     const ctxKegiatan = document.getElementById('chartKategoriKegiatan');
     const ctxArtikel = document.getElementById('chartKategoriArtikel');
 
     if (!ctxStatus || !ctxKegiatan || !ctxArtikel) return;
 
-    // Destroy existing charts
     if (chartStatus) chartStatus.destroy();
     if (chartKategoriKegiatan) chartKategoriKegiatan.destroy();
     if (chartKategoriArtikel) chartKategoriArtikel.destroy();
 
-    // Shared options untuk semua chart
     const chartOptions = {
         responsive: true,
         maintainAspectRatio: true,
@@ -1717,7 +1722,6 @@ function initCharts() {
     console.log('✅ Charts initialized successfully');
 }
 
-// Auto load saat dashboard aktif
 document.addEventListener('DOMContentLoaded', function () {
     const tab = document.getElementById('tab-statistik');
     if (tab && tab.classList.contains('active')) {

@@ -1,7 +1,6 @@
 <?php
 require_once __DIR__ . '/config.php';
 
-// ==================== SECURITY CHECK ====================
 if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
     header("Location: ../index.php");
     exit();
@@ -15,8 +14,14 @@ switch ($action) {
     // ==================== USER ====================
     case 'delete_user':
         $user_id = (int) ($_POST['id'] ?? 0);
+        
+        // Cegah admin menghapus diri sendiri
+        if ($user_id == $_SESSION['user_id']) {
+            header("Location: ../admin.php?tab=relawan&error=cannot_delete_self");
+            exit();
+        }
 
-        $stmt = mysqli_prepare($conn, "DELETE FROM users WHERE id_user = ? AND role_user = 'user'");
+        $stmt = mysqli_prepare($conn, "DELETE FROM users WHERE id_user = ?");
         mysqli_stmt_bind_param($stmt, "i", $user_id);
         mysqli_stmt_execute($stmt);
 
@@ -29,16 +34,23 @@ switch ($action) {
         $email   = clean($_POST['email_user']);
         $telepon = clean($_POST['telepon_user'] ?? '');
         $alamat  = clean($_POST['alamat_user'] ?? '');
+        $role    = clean($_POST['role_user'] ?? 'user');
+
+        // Validasi role
+        if (!in_array($role, ['user', 'admin'])) {
+            $role = 'user';
+        }
 
         $stmt = mysqli_prepare($conn, "
             UPDATE users SET 
                 nama_user = ?, 
                 email_user = ?, 
                 telepon_user = ?, 
-                alamat_user = ?
+                alamat_user = ?,
+                role_user = ?
             WHERE id_user = ?
         ");
-        mysqli_stmt_bind_param($stmt, "ssssi", $nama, $email, $telepon, $alamat, $user_id);
+        mysqli_stmt_bind_param($stmt, "sssssi", $nama, $email, $telepon, $alamat, $role, $user_id);
         mysqli_stmt_execute($stmt);
 
         header("Location: ../admin.php?tab=relawan&user_updated=1");
@@ -425,7 +437,6 @@ case 'delete_foto':
         $judul    = clean($_POST['judul_artikel']);
         $tanggal  = $_POST['tanggal_artikel'];
         $sumber   = clean($_POST['sumber_artikel']);
-        // ambil gambar lama
         $q = mysqli_query($conn, "SELECT gambar_artikel FROM artikel WHERE id_artikel = $id");
         $old = mysqli_fetch_assoc($q);
 
@@ -437,7 +448,6 @@ case 'delete_foto':
 
             if (in_array($ext, $allowed) && $_FILES['gambar_artikel']['size'] <= 5 * 1024 * 1024) {
 
-                // hapus gambar lama
                 if (!empty($old['gambar_artikel'])) {
                     $oldFile = __DIR__ . '/../assets/img/artikel/' . $old['gambar_artikel'];
                     if (file_exists($oldFile)) unlink($oldFile);

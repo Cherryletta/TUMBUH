@@ -1,7 +1,6 @@
 <?php
 require_once __DIR__ . '/config.php';
 
-// Cek apakah user admin
 if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] != 'admin') {
     echo json_encode(['error' => 'Unauthorized']);
     exit();

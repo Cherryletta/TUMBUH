@@ -1,13 +1,11 @@
 <?php include __DIR__ . '/inc/header.php'; ?>
 
 <?php 
-// Jika tidak login, redirect ke beranda
 if (! $is_logged_in) { 
     header('Location: index.php'); 
     exit(); 
 }
 
-// ========== HITUNG STATISTIK RELAWAN BERDASARKAN JENIS KEGIATAN ==========
 $user_id = $current_user['id_user'];
 $query_stats = mysqli_query($conn, "
     SELECT 
@@ -246,13 +244,11 @@ function toggleEditMode() {
     const btnEdit = document.getElementById('btn-edit-trigger');
 
     if (profileEdit.style.display === 'none') {
-        // Masuk mode edit
         profileView.style.display = 'none';
         profileEdit.style.display = 'block';
         btnEdit.textContent = '❌ Batalkan Edit';
         btnEdit.style.background = '#dc3545';
     } else {
-        // Kembali ke mode view
         profileView.style.display = 'block';
         profileEdit.style.display = 'none';
         btnEdit.textContent = '✏️ Edit Profil';
@@ -265,11 +261,9 @@ function togglePasswordMode() {
     const profileEdit = document.getElementById('profile-edit');
     const passwordEdit = document.getElementById('password-edit');
 
-    // Matikan mode lain
     profileView.style.display = 'none';
     profileEdit.style.display = 'none';
 
-    // Toggle password
     if (passwordEdit.style.display === 'none') {
         passwordEdit.style.display = 'block';
     } else {

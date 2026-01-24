@@ -79,7 +79,7 @@
                 </div>
                 <div class="kontak-detail">
                     <h4>Telepon</h4>
-                    <p><a href="tel:+6281234567890">+62 812-3456-7890</a></p>
+                    <p><a href="tel:+6281234567890">+62 895-6043-39518</a></p>
                 </div>
             </div>
 
@@ -121,7 +121,7 @@
         <h3>Lokasi Kami</h3>
         <div class="map-container">
             <iframe 
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3984.4397988796344!2d104.75167631475797!3d-2.9760701977345565!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e3b75f0cbb0c0b7%3A0x8a8f8f8f8f8f8f8f!2sPalembang%2C%20South%20Sumatra!5e0!3m2!1sen!2sid!4v1234567890123!5m2!1sen!2sid" 
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d31876.118516652015!2d104.71015287431642!3d-2.9545456999999993!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e3b7606b6ea9f07%3A0x83305e6d548171d!2sInstitut%20Teknologi%20dan%20Bisnis%20PalComTech!5e0!3m2!1sen!2sid!4v1769262500126!5m2!1sen!2sid" 
                 width="100%" 
                 height="400" 
                 style="border:0; border-radius: 12px;" 

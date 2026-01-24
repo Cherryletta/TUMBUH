@@ -139,27 +139,6 @@
             }
         }
 
-        // Scroll to Top Button
-        (function() {
-            const scrollBtn = document.getElementById('scrollToTop');
-            if (!scrollBtn) return;
-
-            window.addEventListener('scroll', function() {
-                if (window.pageYOffset > 300) {
-                    scrollBtn.classList.add('visible');
-                } else {
-                    scrollBtn.classList.remove('visible');
-                }
-            });
-
-            scrollBtn.addEventListener('click', function() {
-                window.scrollTo({
-                    top: 0,
-                    behavior: 'smooth'
-                });
-            });
-        })();
-
         window.addEventListener('load', function() {
             <?php if (isset($_SESSION['login_error'])): ?>
                 showModal('login');

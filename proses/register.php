@@ -2,7 +2,6 @@
 require_once __DIR__ . '/config.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Ambil data dari form
     $nama = clean($_POST['nama_user']);
     $email = clean($_POST['email_user']);
     $password = $_POST['password_user'];
@@ -11,7 +10,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $alamat = clean($_POST['alamat_user']);
     $motivasi = clean($_POST['motivasi_user']);
 
-    // Validasi
     $errors = [];
     
     if (empty($nama) || empty($email) || empty($password) || empty($telepon)) {
@@ -30,7 +28,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $errors[] = "Password dan konfirmasi password tidak cocok!";
     }
     
-    // Cek apakah email sudah terdaftar
     $stmt = mysqli_prepare($conn, "SELECT id_user FROM users WHERE email_user = ?");
     mysqli_stmt_bind_param($stmt, "s", $email);
     mysqli_stmt_execute($stmt);
@@ -40,12 +37,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $errors[] = "Email sudah terdaftar!";
     }
     
-    // Jika tidak ada error, simpan ke database
     if (empty($errors)) {
-        // Hash password
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
         
-        // Insert ke database
         $query = "INSERT INTO users (nama_user, email_user, password_user, telepon_user, alamat_user, motivasi_user, role_user) 
                   VALUES ('$nama', '$email', '$hashed_password', '$telepon', '$alamat', '$motivasi', 'user')";
         
@@ -58,7 +52,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     }
     
-    // Jika ada error, kembali ke halaman register dengan pesan error
     if (!empty($errors)) {
         $_SESSION['errors'] = $errors;
         $_SESSION['old_data'] = $_POST;
@@ -67,7 +60,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
-// Jika diakses langsung tanpa POST
 header("Location: ../index.php");
 exit();
 ?>

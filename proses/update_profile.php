@@ -1,7 +1,6 @@
 <?php
 require_once __DIR__ . '/config.php';
 
-// Cek apakah user sudah login
 if (!isset($_SESSION['user_id'])) {
     header("Location: ../index.php");
     exit();
@@ -16,7 +15,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $alamat   = clean($_POST['alamat_user']);
     $motivasi = clean($_POST['motivasi_user']);
 
-    // Validasi
     $errors = [];
 
     if (empty($nama) || empty($email) || empty($telepon)) {
@@ -27,7 +25,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $errors[] = "Format email tidak valid!";
     }
 
-    // Cek apakah email sudah digunakan user lain
     $check_email = mysqli_query(
         $conn,
         "SELECT id_user FROM users 
@@ -39,7 +36,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $errors[] = "Email sudah digunakan oleh user lain!";
     }
 
-    // Jika tidak ada error, update database
     if (empty($errors)) {
         $query = "UPDATE users SET 
                     nama_user     = '$nama',
@@ -62,7 +58,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     }
 
-    // Jika ada error
     if (!empty($errors)) {
         $_SESSION['profile_errors'] = $errors;
         header("Location: ../dashboard.php");
@@ -70,7 +65,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
-// Jika diakses langsung tanpa POST
 header("Location: ../index.php");
 exit();
 ?>
