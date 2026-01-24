@@ -89,7 +89,6 @@ $tentang_pages = ['tentang.php', 'visi-misi.php', 'tim.php', 'kontak.php'];
                 </button>
                 <ul class="mobile-dropdown-content">
                     <li><a href="tentang.php">Siapa Kami</a></li>
-                    <li><a href="visi-misi.php">Visi & Misi</a></li>
                     <li><a href="tim.php">Tim Kami</a></li>
                     <li><a href="kontak.php">Kontak</a></li>
                 </ul>
